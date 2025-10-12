@@ -1,0 +1,3402 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>املا دریایی </title>
+    <style>
+        @font-face {
+            font-family: 'Koodak';
+            src: url('FONT/Koodak.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Koodak', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+            color: #fff;
+        }
+        body:focus, canvas:focus {
+            outline: none;
+        }
+        #gameContainer {
+            position: relative;
+            background-color: #000;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            display: none; /* Initially hidden */
+            object-fit: contain;
+            background: #000;
+        }
+        #loadingMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            z-index: 101;
+            display: none; /* Hidden by default */
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/clean-gray-paper.png'), url('https://www.transparenttextures.com/patterns/subtle-dark-matter.png');
+            background-blend-mode: overlay;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #restartLevelBtn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 80%);
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-family: 'Koodak', sans-serif;
+            cursor: pointer;
+            display: none;
+            z-index: 30;
+        }
+        #restartLevelBtn:hover {
+            background-color: #45a049;
+        }
+        .touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none; /* Initially hidden, will be shown via JS and media query */
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            user-select: none;
+            -webkit-user-select: none;
+            z-index: 30;
+        }
+        .touch-btn {
+            background-color: rgba(255, 152, 0, 0.8);
+            color: white;
+            border: 2px solid rgba(230, 137, 0, 0.9);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .touch-btn:active {
+            background-color: #F57C00;
+            transform: scale(0.95);
+        }
+        #gameMenu {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none; /* Hidden by default, shown with game */
+            gap: 10px;
+            z-index: 31;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        .menu-btn {
+            background: linear-gradient(145deg, #6dd5ed, #2193b0);
+            color: white;
+            border: 1px solid #1c7b92;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-family: 'Koodak', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .menu-btn:hover {
+            background: linear-gradient(145deg, #7ee8ff, #29a8c7);
+            transform: scale(1.05);
+        }
+        #splashScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('Creatures/first page.webp');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #000;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 5vh;
+        }
+        #splashScreen::after {
+            content: 'برای شروع کلیک کنید';
+            font-size: 24px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        #gradeSelectionScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            z-index: 99;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+        #gradeSelectionScreen h1 {
+            color: #FFD700;
+            font-size: 3em;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+        .grade-btn {
+            background: linear-gradient(145deg, #f0c14b, #b38b2d);
+            border: 2px solid #a88734;
+            color: #111;
+            padding: 15px 40px;
+            font-size: 22px;
+            font-family: 'Koodak', sans-serif;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            min-width: 250px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .grade-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+        #levelSelectionScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+            z-index: 98;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        #levelSelectionScreen h1 {
+            color: #FFD700;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+        #levelGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .level-btn {
+            background: linear-gradient(145deg, #6dd5ed, #2193b0);
+            border: 2px solid #1c7b92;
+            color: white;
+            aspect-ratio: 1 / 1;
+            font-size: 2em;
+            font-family: 'Koodak', sans-serif;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .level-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(145deg, #7ee8ff, #29a8c7);
+        }
+        #rulesOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            background-image: url('Creatures/قوانین.webp');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 110;
+            display: none; /* Hidden by default */
+            cursor: pointer;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            10%, 30%, 50%, 70%, 90% {
+                transform: translateX(-5px);
+            }
+            20%, 40%, 60%, 80% {
+                transform: translateX(5px);
+            }
+        }
+        .slot-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        @media (pointer: coarse) {
+            .touch-controls.active {
+                display: flex;
+            }
+            #gameMenu.active {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body tabindex="0">
+    <div id="splashScreen"></div>
+    <div id="gradeSelectionScreen">
+        <h1>پایه خود را انتخاب کنید</h1>
+        <button class="grade-btn" data-grade="1">پایه اول</button>
+        <button class="grade-btn" data-grade="2">پایه دوم</button>
+        <button class="grade-btn" data-grade="3">پایه سوم</button>
+        <button class="grade-btn" data-grade="4">پایه چهارم</button>
+        <button class="grade-btn" data-grade="5">پایه پنجم</button>
+        <button class="grade-btn" data-grade="6">پایه ششم</button>
+    </div>
+    <div id="levelSelectionScreen">
+        <h1>مرحله خود را انتخاب کنید</h1>
+        <div id="levelGrid"></div>
+    </div>
+    <div id="rulesOverlay"></div>
+    <div id="gameContainer">
+        <div id="loadingMessage">در حال بارگذاری...</div>
+        <div id="overlay"></div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <button id="restartLevelBtn">شروع دوباره</button>
+        <div class="active" id="gameMenu">
+            <button id="menuRulesBtn" class="menu-btn">قوانین</button>
+            <button id="menuRestartLevelBtn" class="menu-btn">شروع دوباره مرحله</button>
+            <button id="menuSelectLevelBtn" class="menu-btn">انتخاب مراحل</button>
+        </div>
+        <div class="touch-controls" id="touchControls">
+            <div id="leftBtn" class="touch-btn">◀</div>
+            <div id="downBtn" class="touch-btn">▼</div>
+            <div id="rightBtn" class="touch-btn">▶</div>
+        </div>
+    </div>
+    <audio id="startScreenSound" src="sound/first page.mp3" loop preload="auto"></audio>
+    <audio id="backgroundMusic" src="sound/music.mp3" loop preload="auto"></audio>
+    <audio id="wrongSound" src="sound/wrong.mp3" preload="auto"></audio>
+    <script>
+        const splashScreen = document.getElementById('splashScreen');
+        const gradeSelectionScreen = document.getElementById('gradeSelectionScreen');
+        const levelSelectionScreen = document.getElementById('levelSelectionScreen');
+        const levelGrid = document.getElementById('levelGrid');
+        const startScreenSound = document.getElementById('startScreenSound');
+        const canvas = document.getElementById("gameCanvas");
+        const touchControls = document.getElementById('touchControls');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const ctx = canvas.getContext("2d");
+        const restartLevelBtn = document.getElementById('restartLevelBtn');
+        const downBtn = document.getElementById('downBtn'),
+            leftBtn = document.getElementById('leftBtn'),
+            rightBtn = document.getElementById('rightBtn');
+        const gameMenu = document.getElementById('gameMenu');
+        const menuRulesBtn = document.getElementById('menuRulesBtn');
+        const menuRestartLevelBtn = document.getElementById('menuRestartLevelBtn');
+        const menuSelectLevelBtn = document.getElementById('menuSelectLevelBtn');
+        const rulesOverlay = document.getElementById('rulesOverlay');
+        const isTV = /Tizen|Web0S|NetCast|SMART-TV|SmartTV|HbbTV|Opera TV/.test(navigator.userAgent);
+        let tvContinuousMove = 0;
+        let tvSelectedLetterIndex = 0;
+        let isMovingLeft = false,
+            isMovingRight = false;
+        const HOOK_MIN_X = 120;
+        const HOOK_MAX_X = canvas.width - 120;
+        const WATER_LEVEL = 200;
+        const HORIZONTAL_SPEED = isTV ? 4.5 : 5.25;
+        const PARALLAX_FACTOR = 0.2;
+        const BOAT_CONFIG = {
+            width: 125,
+            height: 87,
+            rodAttachmentPoint: {
+                x: 45,
+                y: -45
+            },
+            yDrawOffset: 75
+        };
+        const MAX_FISH_COUNT = 20;
+        // --- LEVEL DATA MANAGEMENT ---
+        const ALL_LEVEL_DATA = {
+            default: [{
+                id: 1,
+                wordPairs: [{
+                    correct: "مهر",
+                    incorrect: "محر"
+                }, {
+                    correct: "نظم",
+                    incorrect: "نزم"
+                }]
+            }, {
+                id: 2,
+                wordPairs: [{
+                    correct: "سفر",
+                    incorrect: "صفر"
+                }, {
+                    correct: "حفظ",
+                    incorrect: "هفز"
+                }]
+            }, {
+                id: 3,
+                wordPairs: [{
+                    correct: "دقت",
+                    incorrect: "دغت"
+                }, {
+                    correct: "بشقاب",
+                    incorrect: "بشغاب"
+                }]
+            }, {
+                id: 4,
+                wordPairs: [{
+                    correct: "قایق",
+                    incorrect: "غایق"
+                }, {
+                    correct: "عمیق",
+                    incorrect: "امیق"
+                }]
+            }, {
+                id: 5,
+                wordPairs: [{
+                    correct: "اقتصاد",
+                    incorrect: "اغتساد"
+                }, {
+                    correct: "ظاهر",
+                    incorrect: "زاهر"
+                }]
+            }, {
+                id: 6,
+                wordPairs: [{
+                    correct: "هوا",
+                    incorrect: "حوا"
+                }, {
+                    correct: "صابون",
+                    incorrect: "سابون"
+                }]
+            }, {
+                id: 7,
+                wordPairs: [{
+                    correct: "مزرعه",
+                    incorrect: "مزرأه"
+                }, {
+                    correct: "طوفان",
+                    incorrect: "توفان"
+                }]
+            }, {
+                id: 8,
+                wordPairs: [{
+                    correct: "ذخیره",
+                    incorrect: "زخیره"
+                }, {
+                    correct: "عینک",
+                    incorrect: "اینک"
+                }]
+            }, {
+                id: 9,
+                wordPairs: [{
+                    correct: "قورباغه",
+                    incorrect: "غورباغه"
+                }, {
+                    correct: "کثیف",
+                    incorrect: "کسیف"
+                }]
+            }, {
+                id: 10,
+                wordPairs: [{
+                    correct: "اثاثیه",
+                    incorrect: "اساسیه"
+                }, {
+                    correct: "لحظه",
+                    incorrect: "لهظه"
+                }]
+            }, {
+                id: 11,
+                wordPairs: [{
+                    correct: "مخصوص",
+                    incorrect: "مخسوس"
+                }, {
+                    correct: "طبیعت",
+                    incorrect: "تبیعت"
+                }]
+            }, {
+                id: 12,
+                wordPairs: [{
+                    correct: "حوصله",
+                    incorrect: "هوسله"
+                }, {
+                    correct: "مرخصی",
+                    incorrect: "مرخسی"
+                }]
+            }, {
+                id: 13,
+                wordPairs: [{
+                    correct: "مسئله",
+                    incorrect: "مسأله"
+                }, {
+                    correct: "ضعیف",
+                    incorrect: "زعیف"
+                }]
+            }, {
+                id: 14,
+                wordPairs: [{
+                    correct: "توضیح",
+                    incorrect: "توزیح"
+                }, {
+                    correct: "عرض",
+                    incorrect: "ارز"
+                }]
+            }, {
+                id: 15,
+                wordPairs: [{
+                    correct: "غذا",
+                    incorrect: "قزا"
+                }, {
+                    correct: "مطمئن",
+                    incorrect: "متمعن"
+                }]
+            }, {
+                id: 16,
+                wordPairs: [{
+                    correct: "اعتراض",
+                    incorrect: "اعتراز"
+                }, {
+                    correct: "لذت",
+                    incorrect: "لزت"
+                }]
+            }, {
+                id: 17,
+                wordPairs: [{
+                    correct: "استثنا",
+                    incorrect: "استسنا"
+                }, {
+                    correct: "وظیفه",
+                    incorrect: "وزيفه"
+                }]
+            }]
+        };
+        ALL_LEVEL_DATA.grade1 = ALL_LEVEL_DATA.default;
+        ALL_LEVEL_DATA.grade2 = ALL_LEVEL_DATA.default;
+        ALL_LEVEL_DATA.grade3 = ALL_LEVEL_DATA.default;
+        ALL_LEVEL_DATA.grade4 = ALL_LEVEL_DATA.default;
+        ALL_LEVEL_DATA.grade5 = ALL_LEVEL_DATA.default;
+        ALL_LEVEL_DATA.grade6 = ALL_LEVEL_DATA.default;
+        let GAME_LEVELS = [];
+        let selectedGrade = null;
+        let hook = {},
+            boat = {};
+        let aiBoat = null,
+            aiHook = null,
+            aiCaughtCount = 0;
+        let items = [],
+            fishes = [],
+            fishesPool = [],
+            bubbles = [],
+            particles = [],
+            clouds = [],
+            corals = [];
+        let fishCaughtCount = 0;
+        let totalWordsCompleted = 0;
+        let scatteredLetters = [],
+            letterSlots = [],
+            placedLetters = [],
+            initialLetterPositions = [];
+        let targetWord = "",
+            message = "",
+            rewardStageMessage = "",
+            resetMessage = "",
+            lastCorrectVentX = null;
+        let gameOver = false,
+            gameOverType = null,
+            gameIsPaused = false;
+        let fishStruggle = 0,
+            struggleDirection = 1;
+        let currentLevelIndex = 0,
+            wordsInLevelCompleted = 0;
+        let gameState = 'WORD_CATCHING';
+        let ropeBurning = false,
+            burnProgress = 0,
+            burnDuration = 75,
+            failedItem = null;
+        let backgroundOffsetX = 0;
+        let isCelebrationFireworksActive = false;
+        let fireworksLaunchTimer = 0;
+        const FIREWORKS_LAUNCH_INTERVAL = 25;
+        let isCheckingWord = false;
+        const ventImage = new Image();
+        let ventImageLoaded = false;
+        const coralImages = [{
+            image: new Image(),
+            src: 'Creatures/Marjan1.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan2.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan3.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan4.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan5.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan6.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan7.webp',
+            loaded: false
+        }, {
+            image: new Image(),
+            src: 'Creatures/Marjan8.webp',
+            loaded: false
+        }, ];
+        let allCoralsLoaded = false;
+        const boatImage = new Image();
+        let boatImageLoaded = false;
+        const crocodileImage = new Image();
+        let crocodileImageLoaded = false;
+        let crocodile = null;
+        const crocodileImageSrc = "Creatures/crocodile.webp";
+        const submarineImage = new Image();
+        let submarineImageLoaded = false;
+        let submarine = null;
+        const submarineImageSrc = "Creatures/Submarine.webp";
+        const BACKGROUND_SETS = [{
+            id: 'mountains_sand',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background1.webp'
+        }, {
+            id: 'island_1',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background2.webp'
+        }, {
+            id: 'island_2',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background3.webp'
+        }, {
+            id: 'distant_island',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background4.webp'
+        }, {
+            id: 'night_city',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background5.webp'
+        }, {
+            id: 'shoreline',
+            image: new Image(),
+            loaded: false,
+            src: 'background/Background3.webp'
+        }];
+        let currentBackgroundSetIndex = 0;
+        const seahorseData = {
+            src: "Creatures/seahorse.webp",
+            facesRight: true,
+            isSeahorse: true
+        };
+        const fishData = [{
+            src: "Creatures/Fish1.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish2.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish3.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish4.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish5.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish6.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish7.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish8.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish9.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish10.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish11.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish12.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish13.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish14.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish15.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish16.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish17.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish18.webp",
+            facesRight: true
+        }, {
+            src: "Creatures/Fish19.webp",
+            facesRight: false
+        }, {
+            src: "Creatures/Fish20.webp",
+            facesRight: true
+        }];
+        const crabImageSrc = "Creatures/crab.webp";
+        const miniFishImageSrc = "Creatures/little fish.webp";
+        let fishImages = [];
+        let seahorseImage, miniFishImage, crabImage;
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const wrongSound = document.getElementById('wrongSound');
+        const catchSound = new Audio("https://cdn.jsdelivr.net/gh/behdad-ahmadi/assets-repo/catch.wav");
+        const placeSound = new Audio("https://cdn.jsdelivr.net/gh/behdad-ahmadi/assets-repo/place.wav");
+        const clickSound = new Audio("sound/click.mp3");
+        const splashSound = new Audio("https://cdn.jsdelivr.net/gh/behdad-ahmadi/assets-repo/splash.wav");
+        const celebrationSound = new Audio("https://cdn.jsdelivr.net/gh/behdad-ahmadi/assets-repo/celebrate.wav");
+        const fireSound = new Audio("sound/fire.mp3");
+        const afarinSound = new Audio("sound/well done.mp3");
+        const clappingSound = new Audio("sound/hand.mp3");
+        const hookDropSound = new Audio("sound/the hook.mp3");
+        const birdSound = new Audio("sound/the bird.mp3");
+        const crocodileAttackSound = new Audio("sound/crocodile.mp3");
+        const propellerSound = new Audio("sound/rotating.mp3");
+        const ventBubbleSound = new Audio("sound/bubble.mp3");
+        fireSound.loop = true;
+        propellerSound.loop = true;
+        birdSound.loop = true;
+        let isMusicPlaying = false;
+        let allAssetsLoaded = false;
+        // =========================================================================
+        // START: PERSIAN LETTER JOINING LOGIC (REVISED)
+        // =========================================================================
+        const persianLetters = {
+            'ا': {
+                isolated: 'ا'
+            },
+            'آ': {
+                isolated: 'آ'
+            },
+            'ب': {
+                isolated: 'ب',
+                initial: 'بـ'
+            },
+            'پ': {
+                isolated: 'پ',
+                initial: 'پـ'
+            },
+            'ت': {
+                isolated: 'ت',
+                initial: 'تـ'
+            },
+            'ث': {
+                isolated: 'ث',
+                initial: 'ثـ'
+            },
+            'ج': {
+                isolated: 'ج',
+                initial: 'جـ'
+            },
+            'چ': {
+                isolated: 'چ',
+                initial: 'چـ'
+            },
+            'ح': {
+                isolated: 'ح',
+                initial: 'حـ'
+            },
+            'خ': {
+                isolated: 'خ',
+                initial: 'خـ'
+            },
+            'د': {
+                isolated: 'د'
+            },
+            'ذ': {
+                isolated: 'ذ'
+            },
+            'ر': {
+                isolated: 'ر'
+            },
+            'ز': {
+                isolated: 'ز'
+            },
+            'ژ': {
+                isolated: 'ژ'
+            },
+            'س': {
+                isolated: 'س',
+                initial: 'سـ'
+            },
+            'ش': {
+                isolated: 'ش',
+                initial: 'شـ'
+            },
+            'ص': {
+                isolated: 'ص',
+                initial: 'صـ'
+            },
+            'ض': {
+                isolated: 'ض',
+                initial: 'ضـ'
+            },
+            'ط': {
+                isolated: 'ط'
+            },
+            'ظ': {
+                isolated: 'ظ'
+            },
+            'ع': {
+                isolated: 'ع',
+                initial: 'عـ'
+            },
+            'غ': {
+                isolated: 'غ',
+                initial: 'غـ'
+            },
+            'ف': {
+                isolated: 'ف',
+                initial: 'فـ'
+            },
+            'ق': {
+                isolated: 'ق',
+                initial: 'قـ'
+            },
+            'ک': {
+                isolated: 'ک',
+                initial: 'کـ'
+            },
+            'گ': {
+                isolated: 'گ',
+                initial: 'گـ'
+            },
+            'ل': {
+                isolated: 'ل',
+                initial: 'لـ'
+            },
+            'م': {
+                isolated: 'م',
+                initial: 'مـ'
+            },
+            'ن': {
+                isolated: 'ن',
+                initial: 'نـ'
+            },
+            'و': {
+                isolated: 'و'
+            },
+            'ه': {
+                isolated: 'ه',
+                initial: 'هـ'
+            },
+            'ی': {
+                isolated: 'ی',
+                initial: 'یـ'
+            },
+            'ء': {
+                isolated: 'ء'
+            },
+            'ئ': {
+                isolated: 'ئ',
+                initial: 'ئـ'
+            }
+        };
+
+        function connectsToNext(char) {
+            const letterData = persianLetters[char];
+            return letterData && letterData.initial;
+        }
+
+        function getPositionalForms(chars) {
+            const result = [];
+            const len = chars.length;
+            for (let i = 0; i < len; i++) {
+                const char = chars[i];
+                const letterData = persianLetters[char];
+                if (!letterData) {
+                    result.push(char);
+                    continue;
+                }
+                const prevChar = i > 0 ? chars[i - 1] : null;
+                const nextChar = i < len - 1 ? chars[i + 1] : null;
+                const connectsFromPrev = prevChar && connectsToNext(prevChar);
+                const connectsToNextChar = nextChar && connectsToNext(char);
+                if (char === 'ه') {
+                    if (connectsFromPrev && connectsToNextChar) {
+                        result.push('ـهـ'); // Medial form
+                    } else if (connectsFromPrev) {
+                        result.push('ـه'); // Final form
+                    } else if (connectsToNextChar) {
+                        result.push(letterData.initial); // Initial form
+                    } else {
+                        result.push(letterData.isolated); // Isolated form
+                    }
+                } else {
+                    if (connectsToNextChar) {
+                        result.push(letterData.initial);
+                    } else {
+                        result.push(letterData.isolated);
+                    }
+                }
+            }
+            return result;
+        }
+        // =========================================================================
+        // END: PERSIAN LETTER JOINING LOGIC (REVISED)
+        // =========================================================================
+        const SAVE_KEY = 'tanavoreKalematSaveData';
+
+        function saveGameState() {
+            if (selectedGrade === null) return;
+            const state = {
+                grade: selectedGrade,
+                levelIndex: currentLevelIndex,
+                wordsCompleted: wordsInLevelCompleted,
+                totalWordsCompleted: totalWordsCompleted,
+                backgroundIndex: currentBackgroundSetIndex
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+        }
+
+        function loadGameState() {
+            const savedData = localStorage.getItem(SAVE_KEY);
+            if (savedData) {
+                try {
+                    const state = JSON.parse(savedData);
+                    if (state && typeof state.grade !== 'undefined' && typeof state.levelIndex !== 'undefined') {
+                        selectedGrade = state.grade;
+                        GAME_LEVELS = ALL_LEVEL_DATA[`grade${selectedGrade}`];
+                        currentLevelIndex = state.levelIndex || 0;
+                        wordsInLevelCompleted = state.wordsCompleted || 0;
+                        totalWordsCompleted = state.totalWordsCompleted || 0;
+                        currentBackgroundSetIndex = state.backgroundIndex || 0;
+                        splashScreen.style.display = 'none';
+                        gradeSelectionScreen.style.display = 'none';
+                        loadingMessage.style.display = 'block';
+                        loadAllAssets(true);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Failed to load game state:", e);
+                    localStorage.removeItem(SAVE_KEY);
+                }
+            }
+            return false;
+        }
+
+        function startGame(loadingFromSave = false) {
+            loadingMessage.style.display = 'none';
+            canvas.style.display = 'block';
+            touchControls.classList.add('active');
+            gameMenu.classList.add('active');
+            playBackgroundMusic();
+            document.body.focus();
+            setTimeout(resizeCanvas, 50);
+            initializeGame(loadingFromSave);
+            gameLoop();
+        }
+        splashScreen.addEventListener('click', () => {
+            splashScreen.style.display = 'none';
+            gradeSelectionScreen.style.display = 'flex';
+        }, {
+            once: true
+        });
+        document.querySelectorAll('.grade-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                selectedGrade = button.dataset.grade;
+                GAME_LEVELS = ALL_LEVEL_DATA[`grade${selectedGrade}`];
+                gradeSelectionScreen.style.display = 'none';
+                populateLevelSelection();
+                levelSelectionScreen.style.display = 'flex';
+            });
+        });
+
+        function populateLevelSelection() {
+            levelGrid.innerHTML = '';
+            GAME_LEVELS.forEach((level, index) => {
+                const levelButton = document.createElement('button');
+                levelButton.className = 'level-btn';
+                levelButton.textContent = level.id;
+                levelButton.dataset.levelIndex = index;
+                levelButton.addEventListener('click', () => {
+                    currentLevelIndex = parseInt(levelButton.dataset.levelIndex, 10);
+                    wordsInLevelCompleted = 0;
+                    totalWordsCompleted = calculateTotalWordsUpTo(currentLevelIndex);
+                    startScreenSound.pause();
+                    startScreenSound.currentTime = 0;
+                    levelSelectionScreen.style.display = 'none';
+                    loadingMessage.style.display = 'block';
+                    loadAllAssets();
+                });
+                levelGrid.appendChild(levelButton);
+            });
+        }
+
+        function calculateTotalWordsUpTo(levelIndex) {
+            let total = 0;
+            for (let i = 0; i < levelIndex; i++) {
+                total += GAME_LEVELS[i].wordPairs.length;
+            }
+            return total;
+        }
+        menuRulesBtn.addEventListener('click', () => {
+            gameIsPaused = true;
+            rulesOverlay.style.display = 'block';
+        });
+        rulesOverlay.addEventListener('click', () => {
+            rulesOverlay.style.display = 'none';
+            gameIsPaused = false;
+        });
+        menuRestartLevelBtn.addEventListener('click', () => {
+            if (gameState === 'FREE_FISHING_REWARD') {
+                startFreeFishingRewardStage();
+            } else {
+                setupNextWord();
+            }
+        });
+        menuSelectLevelBtn.addEventListener('click', () => {
+            gameIsPaused = true;
+            canvas.style.display = 'none';
+            touchControls.classList.remove('active');
+            gameMenu.classList.remove('active');
+            gradeSelectionScreen.style.display = 'flex';
+            levelSelectionScreen.style.display = 'none';
+            backgroundMusic.pause();
+            isMusicPlaying = false;
+            propellerSound.pause();
+            startScreenSound.currentTime = 0;
+            startScreenSound.play().catch(e => {});
+        });
+
+        function playBackgroundMusic() {
+            if (isMusicPlaying) return;
+            backgroundMusic.volume = 0.3;
+            backgroundMusic.play().then(() => {
+                isMusicPlaying = true;
+            }).catch(error => {
+                console.log("Auto-play was prevented.");
+            });
+        }
+
+        function loadAllAssets(loadingFromSave = false) {
+            if (allAssetsLoaded) {
+                if (!loadingFromSave) {
+                    updateBackgroundSet();
+                }
+                startGame(loadingFromSave);
+                return;
+            }
+            let loadedCount = 0;
+            const assetsToLoad = [
+                ...fishData,
+                seahorseData, {
+                    src: crabImageSrc
+                }, {
+                    src: miniFishImageSrc
+                }, {
+                    src: crocodileImageSrc
+                }, {
+                    src: submarineImageSrc
+                }, {
+                    src: 'Creatures/boat.webp'
+                }, {
+                    src: 'Creatures/Underwater volcano.webp'
+                },
+                ...coralImages,
+                ...BACKGROUND_SETS
+            ];
+            const totalAssets = assetsToLoad.length;
+            const onAssetLoad = () => {
+                loadedCount++;
+                if (loadedCount === totalAssets) {
+                    allAssetsLoaded = true;
+                    fishData.forEach((data, i) => fishImages[i] = assetsToLoad[i].image);
+                    seahorseImage = assetsToLoad[fishData.length].image;
+                    crabImage = assetsToLoad[fishData.length + 1].image;
+                    miniFishImage = assetsToLoad[fishData.length + 2].image;
+                    crocodileImage.src = crocodileImageSrc;
+                    crocodileImageLoaded = true;
+                    submarineImage.src = submarineImageSrc;
+                    submarineImageLoaded = true;
+                    boatImage.src = 'Creatures/boat.webp';
+                    boatImageLoaded = true;
+                    ventImage.src = 'Creatures/Underwater volcano.webp';
+                    ventImageLoaded = true;
+                    coralImages.forEach(c => c.loaded = true);
+                    allCoralsLoaded = true;
+                    BACKGROUND_SETS.forEach(b => b.loaded = true);
+                    spawnUniqueFishes();
+                    spawnPermanentCrab();
+                    if (!loadingFromSave) {
+                        updateBackgroundSet();
+                    }
+                    startGame(loadingFromSave);
+                }
+            };
+            assetsToLoad.forEach(asset => {
+                const img = new Image();
+                asset.image = img;
+                img.onload = onAssetLoad;
+                img.onerror = () => {
+                    console.error("Failed to load asset:", asset.src);
+                    onAssetLoad();
+                };
+                img.src = asset.src;
+            });
+        }
+
+        function resizeCanvas() {
+            const aspectRatio = 800 / 600;
+            const container = document.getElementById('gameContainer');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            let newHeight = containerHeight;
+            let newWidth = newHeight * aspectRatio;
+            if (newWidth > containerWidth) {
+                newWidth = containerWidth;
+                newHeight = newWidth / aspectRatio;
+            }
+            canvas.style.width = `${newWidth}px`;
+            canvas.style.height = `${newHeight}px`;
+        }
+
+        function initializeGame(loadingFromSave = false) {
+            const BOAT_Y_BASE = WATER_LEVEL + BOAT_CONFIG.height - BOAT_CONFIG.yDrawOffset;
+            boat = {
+                x: canvas.width / 2,
+                y: BOAT_Y_BASE,
+                baseY: BOAT_Y_BASE,
+                waveOffset: Math.random() * Math.PI * 2,
+                direction: 1,
+                propellerRotation: 0,
+                knockbackForceX: 0,
+                knockbackForceY: 0,
+                knockbackRotation: 0,
+                targetRotation: 0,
+                isInKnockback: false,
+                shakeDuration: 0,
+                knockbackState: 'done'
+            };
+            hook = {
+                x: boat.x + (BOAT_CONFIG.rodAttachmentPoint.x * boat.direction),
+                y: boat.y + BOAT_CONFIG.rodAttachmentPoint.y,
+                width: 4,
+                height: 13,
+                speed: 4.8,
+                ropeY: boat.y + BOAT_CONFIG.rodAttachmentPoint.y,
+                goingDown: false,
+                caught: null,
+                castingAnimation: 0,
+                isHandlingCatch: false
+            };
+            bubbles = [];
+            particles = [];
+            spawnClouds(4);
+            fishCaughtCount = 0;
+            gameOver = false;
+            gameOverType = null;
+            gameIsPaused = false;
+            restartLevelBtn.style.display = 'none';
+            ropeBurning = false;
+            burnProgress = 0;
+            failedItem = null;
+            fireSound.pause();
+            fireSound.currentTime = 0;
+            propellerSound.pause();
+            propellerSound.currentTime = 0;
+            birdSound.pause();
+            birdSound.currentTime = 0;
+            isCheckingWord = false;
+            rewardStageMessage = "";
+            resetMessage = "";
+            lastCorrectVentX = null;
+            spawnCorals(5);
+            aiBoat = null;
+            aiHook = null;
+            aiCaughtCount = 0;
+            tvContinuousMove = 0;
+            tvSelectedLetterIndex = 0;
+            isCelebrationFireworksActive = false;
+            fireworksLaunchTimer = 0;
+            initializeCrocodile();
+            submarine = null;
+            resetAndRepopulateFishes(false);
+            startLevel(currentLevelIndex);
+        }
+
+        function initializeCrocodile() {
+            crocodile = {
+                x: -200,
+                y: WATER_LEVEL,
+                width: 260,
+                height: 78,
+                state: 'lurking',
+                target: null,
+                attackTimer: 300 + Math.random() * 200,
+                speed: 3.5,
+                dir: 1,
+                waveOffset: Math.random() * Math.PI * 2,
+                rotation: 0,
+                targetRotation: 0,
+                diveDepth: 0,
+                targetDepth: 0,
+            };
+        }
+
+        function updateBackgroundSet() {
+            const newIndex = Math.floor(totalWordsCompleted / 3) % BACKGROUND_SETS.length;
+            if (newIndex !== currentBackgroundSetIndex) {
+                currentBackgroundSetIndex = newIndex;
+                saveGameState();
+            }
+        }
+
+        function startLevel(levelIndex) {
+            const level = GAME_LEVELS[levelIndex];
+            if (!level) {
+                gameOver = true;
+                gameOverType = 'win';
+                message = "🎉 شما تمام کلمات را ساختید! 🎉";
+                restartLevelBtn.style.display = 'block';
+                playWordSuccessCelebration();
+                isCelebrationFireworksActive = true;
+                localStorage.removeItem(SAVE_KEY);
+                return;
+            }
+            currentLevelIndex = levelIndex;
+            level.wordPairs.sort(() => Math.random() - 0.5);
+            restartLevelBtn.style.display = 'none';
+            rewardStageMessage = "";
+            resetMessage = "";
+            aiBoat = null;
+            aiHook = null;
+            submarine = null;
+            tvContinuousMove = 0;
+            isCheckingWord = false;
+            resetFishState(false);
+            setupNextWord();
+            saveGameState();
+        }
+
+        function setupNextWord() {
+            gameState = 'WORD_CATCHING';
+            const level = GAME_LEVELS[currentLevelIndex];
+            if (wordsInLevelCompleted >= level.wordPairs.length) {
+                advanceToNextWordOrLevel();
+                return;
+            }
+            const wordPair = level.wordPairs[wordsInLevelCompleted];
+            items = [];
+            const positions = [{
+                x: canvas.width * 0.25
+            }, {
+                x: canvas.width * 0.75
+            }];
+            positions.sort(() => Math.random() - 0.5);
+            const ventY = canvas.height + 20,
+                ventHeight = 200,
+                ballRadius = 35;
+            items.push({
+                type: 'vent',
+                x: positions[0].x,
+                y: ventY,
+                height: ventHeight,
+                hasBall: true,
+                correct: true,
+                eruptionType: 'none',
+                eruptionTimer: 0,
+                ball: {
+                    word: wordPair.correct,
+                    radius: ballRadius,
+                    x: positions[0].x,
+                    baseY: ventY - ventHeight + 25,
+                    y: 0,
+                    type: 'ball',
+                    correct: true
+                }
+            });
+            items.push({
+                type: 'vent',
+                x: positions[1].x,
+                y: ventY,
+                height: ventHeight,
+                hasBall: true,
+                correct: false,
+                eruptionType: 'none',
+                eruptionTimer: 0,
+                ball: {
+                    word: wordPair.incorrect,
+                    radius: ballRadius,
+                    x: positions[1].x,
+                    baseY: ventY - ventHeight + 25,
+                    y: 0,
+                    type: 'ball',
+                    correct: false
+                }
+            });
+            scatteredLetters = [];
+            letterSlots = [];
+            placedLetters = [];
+            initialLetterPositions = [];
+            targetWord = "";
+            hook.caught = null;
+            hook.y = hook.ropeY;
+            hook.goingDown = false;
+            hook.isHandlingCatch = false;
+            saveGameState();
+        }
+
+        function advanceToNextWordOrLevel() {
+            wordsInLevelCompleted++;
+            totalWordsCompleted++;
+            updateBackgroundSet();
+            saveGameState();
+            const currentLevel = GAME_LEVELS[currentLevelIndex];
+            if (wordsInLevelCompleted < currentLevel.wordPairs.length) {
+                setTimeout(setupNextWord, 2000);
+            } else {
+                setTimeout(startFreeFishingRewardStage, 3000);
+            }
+        }
+
+        function spawnPermanentCrab() {
+            if (fishesPool.some(f => f.isCrab) || !crabImage) return;
+            const crabWidth = 70,
+                crabHeight = crabImage.height * (crabWidth / crabImage.width);
+            const crab = {
+                id: 'crab_template',
+                type: 'fish',
+                isCrab: true,
+                image: crabImage,
+                width: crabWidth,
+                baseWidth: crabWidth,
+                dir: Math.random() > 0.5 ? 1 : -1,
+                speed: 0.5 + Math.random() * 0.3,
+                isMoving: true,
+                isCatchable: false
+            };
+            fishesPool.push(crab);
+        }
+
+        function spawnUniqueFishes() {
+            if (fishesPool.length > 1) return;
+            fishesPool = fishesPool.filter(f => f.isCrab);
+            fishData.forEach((data, i) => {
+                const img = fishImages[i];
+                if (!img) return;
+                const dir = data.facesRight ? -1 : 1,
+                    baseSpeed = 0.5 + Math.random() * 0.7;
+                fishesPool.push({
+                    fishDataIndex: i,
+                    type: 'fish',
+                    image: img,
+                    isCrab: false,
+                    isSeahorse: false,
+                    dir: dir,
+                    baseSpeed: baseSpeed,
+                    turnTimer: Math.random() * 300 + 200,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    waveAmplitude: 1.5 + Math.random() * 1.5,
+                    waveFrequency: 0.01 + Math.random() * 0.005,
+                    isCatchable: false
+                });
+            });
+            if (seahorseImage) {
+                fishesPool.push({
+                    fishDataIndex: -1,
+                    type: 'fish',
+                    isSeahorse: true,
+                    isCrab: false,
+                    image: seahorseImage,
+                    dir: 1,
+                    speed: 0.2,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    isCatchable: false
+                });
+            }
+        }
+
+        function resetAndRepopulateFishes(isRewardStage) {
+            if (fishesPool.length === 0) return;
+            fishes = [];
+            const initialFishCount = Math.min(MAX_FISH_COUNT, fishesPool.length);
+            const shuffledPool = [...fishesPool].sort(() => 0.5 - Math.random());
+            for (let i = 0; i < initialFishCount; i++) {
+                const template = shuffledPool[i];
+                let fishWidth, newFish;
+                if (template.isCrab) {
+                    fishWidth = template.baseWidth;
+                    const crabHeight = template.image.height * (fishWidth / template.image.width);
+                    newFish = { ...template,
+                        id: `crab_${Date.now()}_${Math.random()}`,
+                        x: Math.random() * (canvas.width - fishWidth) + fishWidth / 2,
+                        y: canvas.height - crabHeight / 2 - 20,
+                        actionTimer: 100 + Math.random() * 100,
+                        bubbleTimer: Math.random() * 200,
+                        caughtBy: null,
+                        isCatchable: isRewardStage
+                    };
+                } else if (template.isSeahorse) {
+                    fishWidth = 60 + Math.random() * 20;
+                    newFish = { ...template,
+                        id: `seahorse_${Date.now()}_${Math.random()}`,
+                        x: Math.random() * canvas.width,
+                        y: WATER_LEVEL + 100 + Math.random() * (canvas.height - WATER_LEVEL - 250),
+                        width: fishWidth,
+                        baseWidth: fishWidth,
+                        bubbleTimer: Math.random() * 200,
+                        caughtBy: null,
+                        isCatchable: isRewardStage
+                    };
+                } else {
+                    fishWidth = 70 + Math.random() * 50;
+                    if (fishWidth > 110) fishWidth = 85 + Math.random() * 15;
+                    newFish = { ...template,
+                        id: `fish_${template.fishDataIndex}_${Date.now()}`,
+                        x: Math.random() * canvas.width,
+                        y: WATER_LEVEL + 50 + Math.random() * (canvas.height - WATER_LEVEL - 150),
+                        width: fishWidth,
+                        baseWidth: fishWidth,
+                        speed: template.baseSpeed,
+                        targetSpeed: template.baseSpeed,
+                        bubbleTimer: Math.random() * 200,
+                        caughtBy: null,
+                        isCatchable: isRewardStage
+                    };
+                }
+                fishes.push(newFish);
+            }
+        }
+
+        function spawnCorals(n) {
+            corals = [];
+            for (let i = 0; i < n; i++) {
+                const size = 80 + Math.random() * 70;
+                const imageIndex = Math.floor(Math.random() * coralImages.length);
+                corals.push({
+                    x: Math.random() * canvas.width,
+                    y: canvas.height - size / 2 + 20 + (Math.random() - 0.5) * 20,
+                    size: size,
+                    imageIndex: imageIndex,
+                });
+            }
+        }
+
+        function handleTashdid(word) {
+            const chars = [...word];
+            const combinedChars = [];
+            for (let i = 0; i < chars.length; i++) {
+                if (chars[i] === 'ّ' && i > 0 && combinedChars.length > 0) {
+                    combinedChars[combinedChars.length - 1] += chars[i];
+                } else if (chars[i] !== ' ' && chars[i] !== '\u200c') {
+                    combinedChars.push(chars[i]);
+                }
+            }
+            return combinedChars;
+        }
+
+        function spawnLetters(word) {
+            const lettersWithTashdid = handleTashdid(word.replace(/\s/g, ''));
+            const lettersToSpawn = getPositionalForms(lettersWithTashdid); // Use the new function here!
+            scatteredLetters = [];
+            initialLetterPositions = [];
+            let tempLetters = [...lettersToSpawn];
+            tempLetters.sort(() => Math.random() - 0.5);
+            if (isTV) {
+                const startX = canvas.width / 2,
+                    startY = WATER_LEVEL + 120,
+                    yStep = 70;
+                tempLetters.forEach((char, i) => {
+                    const pos = {
+                        char: char,
+                        x: startX,
+                        y: startY + i * yStep
+                    };
+                    scatteredLetters.push({ ...pos
+                    });
+                    initialLetterPositions.push({ ...pos
+                    });
+                });
+                tvSelectedLetterIndex = 0;
+            } else {
+                tempLetters.forEach((char, i) => {
+                    const pos = {
+                        char: char,
+                        x: canvas.width / 2 + (i - (tempLetters.length - 1) / 2) * 80,
+                        y: WATER_LEVEL + 100 + Math.random() * 100
+                    };
+                    scatteredLetters.push({ ...pos
+                    });
+                    initialLetterPositions.push({ ...pos
+                    });
+                });
+            }
+            placedLetters = new Array(lettersToSpawn.length).fill(null);
+            letterSlots = [];
+            const totalWidth = lettersToSpawn.length * 60;
+            const startXSlots = canvas.width / 2 + totalWidth / 2 - 30;
+            for (let i = 0; i < lettersToSpawn.length; i++) {
+                letterSlots.push({
+                    x: startXSlots - i * 60,
+                    y: 70
+                });
+            }
+        }
+
+        function spawnClouds(n) {
+            clouds = [];
+            for (let i = 0; i < n; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width,
+                    y: 20 + Math.random() * 25,
+                    size: 25 + Math.random() * 20,
+                    speed: 0.1 + Math.random() * 0.2
+                });
+            }
+        }
+
+        function playWordSuccessCelebration() {
+            celebrationSound.play().catch(e => {});
+            clappingSound.currentTime = 0;
+            clappingSound.play().catch(e => {});
+            setTimeout(() => {
+                clappingSound.pause();
+                clappingSound.currentTime = 0;
+            }, 3000);
+        }
+
+        function launchRandomFirework() {
+            const fireworksSound = new Audio("sound/fireworks.mp3");
+            fireworksSound.play().catch(e => {});
+            const startX = Math.random() * canvas.width,
+                startY = canvas.height;
+            const targetHeight = canvas.height * (0.1 + Math.random() * 0.4);
+            const baseColors = ['#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFFFFF'];
+            const color = baseColors[Math.floor(Math.random() * baseColors.length)];
+            const speedY = -(8 + Math.random() * 3);
+            particles.push({
+                type: 'firework',
+                x: startX,
+                y: startY,
+                vx: (Math.random() - 0.5) * 2,
+                vy: speedY,
+                targetY: targetHeight,
+                color: color,
+                baseColor: color,
+                trail: [],
+                life: 140,
+                maxLife: 140,
+                sparkTimer: 0
+            });
+        }
+
+        function explodeFirework(x, y, baseColor) {
+            const explosionColors = ['#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFFFFF', '#FFD700', '#ADD8E6'];
+            for (let i = 0; i < 50; i++) {
+                const ang = Math.random() * Math.PI * 2,
+                    spd = Math.random() * 4 + 1;
+                particles.push({
+                    type: 'explosion',
+                    x: x,
+                    y: y,
+                    vx: Math.cos(ang) * spd,
+                    vy: Math.sin(ang) * spd,
+                    size: 2 + Math.random() * 3,
+                    color: explosionColors[Math.floor(Math.random() * explosionColors.length)],
+                    life: 60,
+                    maxLife: 60,
+                });
+            }
+        }
+
+        function createSplash(x, y, count = 30, power = 3) {
+            splashSound.play();
+            for (let i = 0; i < count; i++) {
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.8;
+                const speed = Math.random() * power;
+                const life = 40 + Math.random() * 40;
+                particles.push({
+                    type: 'foam',
+                    x: x + (Math.random() - 0.5) * 40,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: life,
+                    maxLife: life,
+                    opacity: 0.9,
+                    size: 1 + Math.random() * 3
+                });
+            }
+        }
+
+        function createRopeDebris(x1, y1, x2, y2) {
+            const numPieces = 20,
+                dx = x2 - x1,
+                dy = y2 - y1;
+            for (let i = 0; i < numPieces; i++) {
+                const t = i / numPieces,
+                    px = x1 + t * dx,
+                    py = y1 + t * dy;
+                particles.push({
+                    type: 'debris',
+                    x: px,
+                    y: py,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: Math.random() * -1,
+                    life: 60 + Math.random() * 60,
+                    color: '#5c4d3c',
+                    size: 1 + Math.random() * 2
+                });
+            }
+        }
+
+        function createBubbleEruption(x, y, count = 50) {
+            // ventBubbleSound.play(); // <---  !!! این خط حذف شد !!!
+            for (let i = 0; i < count; i++) {
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8,
+                    speed = 2 + Math.random() * 4;
+                particles.push({
+                    type: 'erupt_bubble',
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 40 + Math.random() * 50,
+                    size: 2 + Math.random() * 5,
+                    opacity: 0.8
+                });
+            }
+        }
+
+        function spawnMiniFishes(x, y, count = 20) {
+            if (!miniFishImage) return;
+            for (let i = 0; i < count; i++) {
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.0,
+                    speed = 3 + Math.random() * 5;
+                particles.push({
+                    type: 'mini_fish',
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 120 + Math.random() * 60,
+                    maxLife: 120 + Math.random() * 60,
+                    size: 40 + Math.random() * 20,
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.1
+                });
+            }
+        }
+
+        function createFireEruption(x, y, count = 70) {
+            for (let i = 0; i < count; i++) {
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+                const speed = 2 + Math.random() * 5;
+                const life = 60 + Math.random() * 60;
+                particles.push({
+                    type: 'fire',
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: life,
+                    maxLife: life,
+                    size: 4 + Math.random() * 7,
+                });
+            }
+        }
+
+        function drawBackground() {
+            const currentBg = BACKGROUND_SETS[currentBackgroundSetIndex];
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, WATER_LEVEL);
+            if (currentBg.id === 'distant_island' || currentBg.id === 'night_city') {
+                skyGrad.addColorStop(0, '#000030');
+                skyGrad.addColorStop(1, '#20204A');
+            } else {
+                skyGrad.addColorStop(0, '#87CEEB');
+                skyGrad.addColorStop(1, '#B9E2F5');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, WATER_LEVEL);
+            if (currentBg.id === 'distant_island' || currentBg.id === 'night_city') {
+                ctx.fillStyle = 'white';
+                for (let i = 0; i < 100; i++) {
+                    ctx.beginPath();
+                    ctx.arc(Math.random() * canvas.width, Math.random() * WATER_LEVEL, Math.random() * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            if (currentBg.image && currentBg.loaded) {
+                const img = currentBg.image,
+                    imgAspectRatio = img.width / img.height;
+                const imgHeight = WATER_LEVEL,
+                    imgWidth = imgHeight * imgAspectRatio;
+                let imgX = (canvas.width - imgWidth) / 2 + backgroundOffsetX;
+                ctx.drawImage(img, imgX, 0, imgWidth, imgHeight);
+            }
+            if (currentBg.id !== 'distant_island' && currentBg.id !== 'night_city') {
+                clouds.forEach(drawCloud);
+            }
+            let seaGrad = ctx.createLinearGradient(0, WATER_LEVEL, 0, canvas.height);
+            seaGrad.addColorStop(0, '#4FB6E9');
+            seaGrad.addColorStop(0.8, '#005f82');
+            seaGrad.addColorStop(1, '#00334d');
+            ctx.fillStyle = seaGrad;
+            ctx.fillRect(0, WATER_LEVEL, canvas.width, canvas.height - WATER_LEVEL);
+            ctx.fillStyle = '#C2B280';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for (let i = 0; i <= canvas.width; i += 20) {
+                ctx.lineTo(i, canvas.height - 30 + Math.sin(i / 50) * 5);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawCloud(c) {
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.size * 0.6, 0, Math.PI * 2);
+            ctx.arc(c.x + c.size * 0.5, c.y + c.size * 0.1, c.size * 0.7, 0, Math.PI * 2);
+            ctx.arc(c.x - c.size * 0.5, c.y + c.size * 0.2, c.size * 0.5, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawWaterSurface() {
+            ctx.strokeStyle = "rgba(255,255,255,0.4)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += 10) {
+                ctx.lineTo(x, WATER_LEVEL + Math.sin((x + Date.now() / 200) / 20) * 2);
+            }
+            ctx.stroke();
+        }
+
+        function drawCorals() {
+            if (!allCoralsLoaded) return;
+            corals.forEach(coral => {
+                const coralData = coralImages[coral.imageIndex];
+                if (coralData && coralData.loaded) {
+                    ctx.drawImage(coralData.image, coral.x - coral.size / 2, coral.y - coral.size / 2, coral.size, coral.size);
+                }
+            });
+        }
+
+        function drawSeabedDetails() {
+            const t = Date.now();
+            drawSeaweed(100, canvas.height, 80, 15, 0.02, t, '#556B2F', '#6B8E23');
+            drawSeaweed(650, canvas.height, 90, 12, -0.025, t, '#8FBC8F', '#98FB98');
+        }
+
+        function drawSeaweed(x, y, h, w, s, t, c1, c2) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            const segs = 20;
+            for (let i = 1; i <= segs; i++) {
+                const p = i / segs;
+                ctx.lineTo(x + Math.sin(t / 500 + i * 0.3) * s * p * 150, y - p * h);
+            }
+            for (let i = segs; i >= 0; i--) {
+                const p = i / segs;
+                ctx.lineTo(x + Math.sin(t / 500 + i * 0.3) * s * p * 150 + w * (1 - p * 0.7), y - p * h);
+            }
+            ctx.closePath();
+            let g = ctx.createLinearGradient(x, y - h, x, y);
+            g.addColorStop(0, c2);
+            g.addColorStop(1, c1);
+            ctx.fillStyle = g;
+            ctx.fill();
+        }
+
+        function drawVentImage(vent) {
+            if (!ventImageLoaded) {
+                const {
+                    x,
+                    y,
+                    height
+                } = vent;
+                ctx.fillStyle = '#6b4f3a';
+                ctx.beginPath();
+                ctx.moveTo(x - height * 0.7, y + 20);
+                ctx.lineTo(x, y - height + 15);
+                ctx.lineTo(x + height * 0.7, y + 20);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#ff6600';
+                ctx.beginPath();
+                ctx.arc(x, y - height + 15, 20, 0, Math.PI * 2);
+                ctx.fill();
+                return;
+            }
+            const {
+                x,
+                y,
+                height
+            } = vent;
+            const imgWidth = height * 1.5,
+                imgHeight = height * 1.5;
+            ctx.drawImage(ventImage, x - imgWidth / 2, y - imgHeight + 40, imgWidth, imgHeight);
+            const ventTopY = y - height + 25;
+            if (vent.eruptionTimer > 0) {
+                if (vent.eruptionType === 'bubbles' && vent.eruptionTimer % 4 === 0) {
+                    createBubbleEruption(x, ventTopY);
+                } else if (vent.eruptionType === 'fire' && vent.eruptionTimer % 3 === 0) {
+                    createFireEruption(x, ventTopY);
+                }
+            }
+        }
+
+        function drawBall(ball) {
+            ctx.save();
+            const grad = ctx.createRadialGradient(ball.x - 5, ball.y - 5, 1, ball.x, ball.y, ball.radius);
+            grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+            grad.addColorStop(0.7, '#a2cffe');
+            grad.addColorStop(1, '#4d96ff');
+            ctx.fillStyle = grad;
+            ctx.shadowColor = 'rgba(162,207,254,0.7)';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            if (ball.word) {
+                const baseFontSize = ball.radius * 0.7,
+                    wordLength = ball.word.length;
+                const scaleFactor = (wordLength > 8) ? 0.6 : (wordLength > 5) ? 0.75 : 1.0;
+                const finalFontSize = Math.max(baseFontSize * scaleFactor, 10);
+                ctx.fillStyle = "#1a1300";
+                ctx.font = `bold ${finalFontSize}px Koodak`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(ball.word, ball.x, ball.y);
+            }
+        }
+
+        function drawWavyFish(f) {
+            if (!f.image) return;
+            if (f.isCrab) {
+                ctx.save();
+                let currentY = f.y + Math.sin(Date.now() / 200 + f.x / 50) * 2;
+                ctx.translate(f.x, currentY);
+                const crabHeight = f.image.height * (f.width / f.image.width);
+                ctx.drawImage(f.image, -f.width / 2, -crabHeight / 2, f.width, crabHeight);
+                ctx.restore();
+                return;
+            }
+            if (f.isSeahorse) {
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.scale(f.dir, 1);
+                const aspectRatio = f.image.width / f.image.height,
+                    fishHeight = f.width / aspectRatio;
+                ctx.drawImage(f.image, -f.width / 2, -fishHeight / 2, f.width, fishHeight);
+                ctx.restore();
+                return;
+            }
+            ctx.save();
+            ctx.translate(f.x, f.y);
+            ctx.scale(f.dir, 1);
+            const aspectRatio = f.image.width / f.image.height,
+                fishHeight = f.width / aspectRatio,
+                numSlices = 20,
+                sliceWidth = f.width / numSlices,
+                bodySlices = Math.floor(numSlices * 0.7),
+                time = Date.now();
+            for (let i = 0; i < numSlices; i++) {
+                const sliceX = i * sliceWidth;
+                let yOffset = 0;
+                if (i > bodySlices) {
+                    const tailProgress = (i - bodySlices) / (numSlices - bodySlices);
+                    yOffset = Math.sin(f.waveOffset + time * f.waveFrequency + tailProgress * Math.PI) * f.waveAmplitude * tailProgress;
+                }
+                try {
+                    ctx.drawImage(
+                        f.image,
+                        Math.floor(i * (f.image.width / numSlices)),
+                        0,
+                        Math.ceil(f.image.width / numSlices),
+                        f.image.height,
+                        (sliceX - f.width / 2),
+                        (yOffset - fishHeight / 2),
+                        sliceWidth + 1,
+                        fishHeight
+                    );
+                } catch (e) {}
+            }
+            ctx.restore();
+        }
+
+        function drawFishes() {
+            if (!allAssetsLoaded) return;
+            fishes.forEach(f => {
+                if (!f.caughtBy) drawWavyFish(f);
+            });
+            if (hook?.caught) {
+                drawCaughtItem(hook.caught, hook.fishStruggle || 0);
+            }
+            if (aiHook?.caught) {
+                drawCaughtItem(aiHook.caught, aiHook.fishStruggle || 0);
+            }
+        }
+
+        function drawCaughtItem(item, struggle) {
+            if (item.type === 'ball') {
+                drawBall(item);
+                return;
+            }
+            if (item.type === 'fish' && item.image) {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                const scaleX = item.dir;
+                ctx.scale(scaleX, 1);
+                ctx.rotate(Math.sin(struggle) * 0.3);
+                const aspectRatio = item.image.width / item.image.height,
+                    fishHeight = item.width / aspectRatio;
+                ctx.drawImage(item.image, -item.width / 2, -fishHeight / 2, item.width, fishHeight);
+                ctx.restore();
+            }
+        }
+
+        function drawBubbles() {
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 1;
+            bubbles.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        function drawCrocodile() {
+            if (!crocodile || !crocodileImageLoaded) return;
+            ctx.save();
+            const time = Date.now();
+            const yOffset = Math.sin(time / 300 + crocodile.waveOffset) * 5;
+            ctx.translate(crocodile.x, crocodile.y + yOffset);
+            ctx.rotate(crocodile.rotation);
+            ctx.scale(crocodile.dir, 1);
+            ctx.globalAlpha = 1 - (crocodile.diveDepth / 100);
+            const numSlices = 40;
+            const sliceWidth = crocodile.width / numSlices;
+            const speedFactor = (crocodile.state === 'approaching' || crocodile.state === 'diving' || crocodile.state === 'surfacing') ? 3 : 1.5;
+            for (let i = 0; i < numSlices; i++) {
+                const sliceX = (i * sliceWidth) - (crocodile.width / 2);
+                const progress = i / numSlices;
+                const sliceYOffset = Math.sin(time / 150 - progress * 5) * (progress * 8) * speedFactor;
+                const sliceXOffset = Math.cos(time / 150 - progress * 5) * (progress * 2) * speedFactor;
+                try {
+                    ctx.drawImage(
+                        crocodileImage,
+                        Math.floor(i * (crocodileImage.width / numSlices)),
+                        0,
+                        Math.ceil(crocodileImage.width / numSlices),
+                        crocodileImage.height,
+                        sliceX + sliceXOffset, -crocodile.height / 2 + sliceYOffset,
+                        sliceWidth + 1,
+                        crocodile.height
+                    );
+                } catch (e) {}
+            }
+            ctx.restore();
+        }
+
+        function drawSubmarine() {
+            if (!submarine || !submarineImageLoaded) return;
+            // Helper to draw the ENTIRE underwater scene
+            function drawFullUnderwaterScene() {
+                drawCorals();
+                drawSeabedDetails();
+                drawFishes();
+                drawBubbles();
+                drawCrocodile();
+            }
+            // 1. Draw the entire underwater scene first
+            drawFullUnderwaterScene();
+            // 2. Draw a dark overlay on top of everything
+            ctx.fillStyle = 'rgba(0, 5, 20, 0.8)';
+            ctx.fillRect(0, WATER_LEVEL, canvas.width, canvas.height - WATER_LEVEL);
+            ctx.save();
+            // 3. Define the light cone shape
+            const lightOriginX = submarine.x + (submarine.width * 0.45 * submarine.dir);
+            const lightOriginY = submarine.y;
+            const beamLength = 800;
+            const beamSpread = 400;
+            ctx.beginPath();
+            ctx.moveTo(lightOriginX, lightOriginY);
+            const farX = lightOriginX + beamLength * submarine.dir;
+            ctx.lineTo(farX - beamSpread, lightOriginY - beamSpread);
+            ctx.lineTo(farX + beamSpread, lightOriginY + beamSpread);
+            ctx.closePath();
+            // 4. Create the NEW light gradient (darker blue, like the sea)
+            const grad = ctx.createLinearGradient(lightOriginX, lightOriginY, farX, lightOriginY);
+            const beamFlicker = 0.015 + Math.sin(Date.now() / 300) * 0.005; // Reduced flicker intensity for a darker light
+            // Using darker sea-blue colors instead of white/light blue
+            grad.addColorStop(0, `rgba(0, 95, 130, ${beamFlicker + 0.02})`); // Base color: A darker sea blue (#005f82)
+            grad.addColorStop(0.3, `rgba(0, 80, 110, ${beamFlicker})`);
+            grad.addColorStop(1, 'rgba(0, 60, 90, 0)'); // Fades to a dark, transparent blue
+            // 5. Fill with the new gradient
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // 6. Clip the drawing area to the light cone
+            ctx.clip();
+            // 7. Redraw the full underwater scene AGAIN, but only within the clipped (lit) area
+            drawFullUnderwaterScene();
+            // 8. Add a subtle color tint inside the light beam for atmosphere
+            ctx.fillStyle = 'rgba(0, 95, 130, 0.1)'; // Using the same dark blue for the tint
+            ctx.fillRect(0, WATER_LEVEL, canvas.width, canvas.height - WATER_LEVEL);
+            ctx.restore(); // Remove the clip
+            // 9. Finally, draw the submarine on top of everything
+            ctx.save();
+            ctx.translate(submarine.x, submarine.y);
+            ctx.scale(submarine.dir, 1);
+            ctx.drawImage(submarineImage, -submarine.width / 2, -submarine.height / 2, submarine.width, submarine.height);
+            ctx.restore();
+        }
+
+        function drawParticles() {
+            particles.forEach((p, i) => {
+                ctx.save();
+                if (p.type === 'erupt_bubble') {
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (p.type === 'foam') {
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (p.type === 'fire') {
+                    const progress = p.life / p.maxLife;
+                    const g = Math.floor(200 * progress);
+                    const b = Math.floor(50 * progress);
+                    ctx.fillStyle = `rgba(255, ${g}, ${b}, ${progress * 0.9})`;
+                    ctx.shadowColor = `rgb(255, ${g}, 0)`;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (p.type === 'mini_fish' && miniFishImage) {
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.translate(p.x, p.y);
+                    const direction = p.vx > 0 ? 1 : -1;
+                    ctx.scale(direction, 1);
+                    ctx.rotate(p.angle);
+                    const aspectRatio = miniFishImage.width / miniFishImage.height,
+                        fishHeight = p.size / aspectRatio;
+                    ctx.drawImage(miniFishImage, -p.size / 2, -fishHeight / 2, p.size, fishHeight);
+                } else if (p.type === 'firework') {
+                    p.trail.push({
+                        x: p.x,
+                        y: p.y
+                    });
+                    if (p.trail.length > 20) p.trail.shift();
+                    if (p.trail.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.trail[0].x, p.trail[0].y);
+                        for (let j = 1; j < p.trail.length; j++) {
+                            ctx.lineTo(p.trail[j].x, p.trail[j].y);
+                        }
+                        const grad = ctx.createLinearGradient(p.trail[0].x, p.trail[0].y, p.x, p.y);
+                        grad.addColorStop(0, '#FFFFFF');
+                        grad.addColorStop(0.5, '#FFD700');
+                        grad.addColorStop(1, p.baseColor);
+                        ctx.strokeStyle = grad;
+                        ctx.lineWidth = 3;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = p.baseColor;
+                        ctx.stroke();
+                    }
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = p.color;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (p.type === 'spark' || p.type === 'explosion') {
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = p.color;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                } else { // Debris
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawMotorHousing(config, isAi) {
+            ctx.fillStyle = isAi ? '#4a2511' : '#5C4033';
+            ctx.strokeStyle = '#3d2b24';
+            ctx.lineWidth = 2;
+            const motorX = -config.width / 2 + 7,
+                motorY = -55,
+                motorWidth = 15,
+                motorHeight = 22;
+            ctx.beginPath();
+            ctx.moveTo(motorX, motorY);
+            ctx.lineTo(motorX - motorWidth, motorY);
+            ctx.arc(motorX - motorWidth, motorY + motorHeight / 2, motorHeight / 2, Math.PI * 1.5, Math.PI * 0.5, false);
+            ctx.lineTo(motorX, motorY + motorHeight);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawPropeller(boat, config) {
+            const propellerX = -config.width / 2 - 8,
+                propellerY = -18;
+            ctx.strokeStyle = '#696969';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-config.width / 2 + 7, -42);
+            ctx.quadraticCurveTo(-config.width / 2 - 15, -28, propellerX, propellerY);
+            ctx.stroke();
+            ctx.fillStyle = '#a9a9a9';
+            ctx.beginPath();
+            ctx.arc(propellerX, propellerY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#808080';
+            ctx.stroke();
+            ctx.save();
+            ctx.translate(propellerX, propellerY);
+            ctx.rotate(boat.propellerRotation);
+            ctx.fillStyle = '#c0c0c0';
+            ctx.strokeStyle = '#808080';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.rotate(Math.PI * 2 / 3);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(12, -6, 18, -2, 15, 0);
+                ctx.bezierCurveTo(18, 2, 12, 6, 0, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawBoatEngine(currentBoat, config, isAi) {
+            if (!currentBoat) return;
+            ctx.save();
+            let boatX = currentBoat.x;
+            let boatY = currentBoat.y;
+            if (currentBoat.shakeDuration > 0) {
+                boatX += (Math.random() - 0.5) * 6;
+                boatY += (Math.random() - 0.5) * 2;
+            }
+            ctx.translate(boatX, boatY);
+            ctx.rotate(currentBoat.knockbackRotation);
+            ctx.scale(currentBoat.direction, 1);
+            drawMotorHousing(config, isAi);
+            drawPropeller(currentBoat, config);
+            ctx.restore();
+        }
+
+        function drawBoat(currentBoat, config, image, imageLoaded) {
+            if (!currentBoat) return;
+            ctx.save();
+            let boatX = currentBoat.x;
+            let boatY = currentBoat.y;
+            if (currentBoat.shakeDuration > 0) {
+                boatX += (Math.random() - 0.5) * 6;
+                boatY += (Math.random() - 0.5) * 2;
+            }
+            ctx.translate(boatX, boatY);
+            ctx.rotate(currentBoat.knockbackRotation);
+            ctx.scale(currentBoat.direction, 1);
+            const isAi = (currentBoat === aiBoat);
+            ctx.filter = isAi ? 'hue-rotate(-40deg) sepia(20%) saturate(150%)' : 'none';
+            if (imageLoaded && image) {
+                ctx.drawImage(image, -config.width / 2, -config.height, config.width, config.height);
+            } else {
+                ctx.fillStyle = isAi ? "#8B0000" : "#8B4513";
+                ctx.fillRect(-config.width / 2, -15, config.width, 20);
+                ctx.fillStyle = isAi ? "#A52A2A" : "#A0522D";
+                ctx.fillRect(-20, -35, 40, 20);
+            }
+            ctx.filter = 'none';
+            ctx.restore();
+        }
+
+        function drawHookAndRope(currentHook, currentBoat, config) {
+            if (!currentHook || !currentBoat) return;
+            if (failedItem && failedItem.burningProgress > 0 && currentHook === hook) return;
+            let ropeStartX = currentBoat.x;
+            let ropeStartY = currentBoat.y;
+            if (currentBoat.shakeDuration > 0) {
+                ropeStartX += (Math.random() - 0.5) * 6;
+                ropeStartY += (Math.random() - 0.5) * 2;
+            }
+            ropeStartX += (config.rodAttachmentPoint.x * currentBoat.direction);
+            ropeStartY += config.rodAttachmentPoint.y;
+            const ropeEndX = currentHook.x;
+            const ropeEndY = currentHook.y;
+            const isNotCast = currentHook.y === currentHook.ropeY && !currentHook.goingDown && !currentHook.caught;
+            if (!isNotCast) {
+                drawRodBobber(ropeEndX, ropeEndY - 5);
+            }
+            if (ropeBurning && currentHook === hook) {
+                drawBurntRope(ropeStartX, ropeStartY, ropeEndX, ropeEndY);
+            } else {
+                ctx.strokeStyle = "#D2B48C";
+                ctx.lineWidth = 1.5;
+                drawWigglyRope(ctx, ropeStartX, ropeStartY, ropeEndX, ropeEndY, currentHook.caught);
+            }
+        }
+
+        function drawRodBobber(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            const bobberWidth = 6,
+                bobberHeight = 9;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bobberWidth, bobberHeight, 0, 0, Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#E74C3C';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bobberWidth, bobberHeight, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#B71C1C';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-bobberWidth, 0);
+            ctx.lineTo(bobberWidth, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawWigglyRope(ctx, x1, y1, x2, y2, isCaught) {
+            const dx = x2 - x1,
+                dy = y2 - y1,
+                dist = Math.hypot(dx, dy);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            if (dist < 5) {
+                ctx.lineTo(x2, y2);
+            } else {
+                const segments = 10,
+                    amplitude = (isCaught && !ropeBurning) ? 4 : 2,
+                    freq = 5;
+                for (let i = 1; i < segments; i++) {
+                    const t = i / segments;
+                    let px = x1 + t * dx,
+                        py = y1 + t * dy;
+                    const offset = Math.sin(t * Math.PI * freq + Date.now() / 200) * amplitude,
+                        perpX = -dy / dist * offset,
+                        perpY = dx / dist * offset;
+                    ctx.lineTo(px + perpX, py + perpY);
+                }
+                ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+        }
+
+        function drawLetters() {
+            if (gameState !== 'WORD_BUILDING') return;
+            ctx.font = "bold 28px Koodak";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            scatteredLetters.forEach((l, i) => {
+                const isSelected = isTV && (i === tvSelectedLetterIndex);
+                const radius = isSelected ? 34 : 28;
+                ctx.fillStyle = isSelected ? "rgba(255,255,100,1)" : "rgba(255,223,0,0.9)";
+                ctx.beginPath();
+                ctx.arc(l.x, l.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = isSelected ? "#FF8C00" : "#DAA520";
+                ctx.lineWidth = isSelected ? 4 : 3;
+                ctx.stroke();
+                ctx.fillStyle = "#000";
+                ctx.fillText(l.char, l.x, l.y + 2);
+            });
+            letterSlots.forEach((slot, i) => {
+                ctx.save();
+                ctx.strokeStyle = "rgba(255,255,255,0.6)";
+                ctx.lineWidth = 3;
+                if (slot.isShaking) {
+                    ctx.translate(slot.x - 25 + (Math.random() - 0.5) * 10, slot.y - 25);
+                } else {
+                    ctx.translate(slot.x - 25, slot.y - 25);
+                }
+                ctx.strokeRect(0, 0, 50, 50);
+                if (placedLetters[i]) {
+                    ctx.fillStyle = "rgba(255,223,0,1)";
+                    ctx.fillRect(0, 0, 50, 50);
+                    ctx.fillStyle = "#000";
+                    ctx.fillText(placedLetters[i], 25, 27);
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawScores() {
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 20px Koodak";
+            ctx.textBaseline = "middle";
+            ctx.textAlign = "left";
+            const yPos = gameMenu.offsetHeight + 25;
+            if (gameState === 'FREE_FISHING_REWARD') {
+                ctx.fillText(`شما: ${fishCaughtCount} ماهی`, 20, yPos);
+                ctx.fillStyle = "#FFC0CB";
+                ctx.fillText(`رقیب: ${aiCaughtCount} ماهی`, 20, yPos + 30);
+            } else {
+                ctx.fillText(`مرحله: ${GAME_LEVELS[currentLevelIndex].id}`, 20, yPos);
+                ctx.fillText(`کلمات: ${wordsInLevelCompleted}/${GAME_LEVELS[currentLevelIndex].wordPairs.length}`, 20, yPos + 30);
+            }
+        }
+
+        function drawMessage() {
+            let messageToDraw = "",
+                subMessage = "";
+            if (gameOver) {
+                messageToDraw = message;
+                restartLevelBtn.style.display = 'block';
+                subMessage = (gameOverType === 'lose') ? "برای شروع دوباره، کلیک کنید" : "برای بازی مجدد، کلیک کنید";
+            } else if (rewardStageMessage) {
+                messageToDraw = rewardStageMessage;
+            } else if (resetMessage) {
+                messageToDraw = resetMessage;
+            }
+            if (messageToDraw) {
+                ctx.fillStyle = "rgba(0,0,0,0.75)";
+                ctx.beginPath();
+                ctx.rect(canvas.width / 2 - 250, canvas.height / 2 - 80, 500, subMessage ? 160 : 120);
+                ctx.fill();
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 26px Koodak";
+                ctx.textAlign = "center";
+                ctx.fillText(messageToDraw, canvas.width / 2, canvas.height / 2 - (subMessage ? 20 : 0));
+                if (subMessage) {
+                    ctx.font = "20px Koodak";
+                    ctx.fillText(subMessage, canvas.width / 2, canvas.height / 2 + 35);
+                }
+            }
+        }
+
+        function drawBurntRope(x1, y1, x2, y2) {
+            if (burnProgress >= 1) return;
+            const dx = x2 - x1,
+                dy = y2 - y1;
+            const burnPointX = x1 + dx * (1 - burnProgress),
+                burnPointY = y1 + dy * (1 - burnProgress);
+            ctx.strokeStyle = "#D2B48C";
+            ctx.lineWidth = 1.5;
+            drawWigglyRope(ctx, x1, y1, burnPointX, burnPointY, false);
+            for (let i = 0; i < 15; i++) {
+                const angle = Math.random() * Math.PI * 2,
+                    radius = Math.random() * 15,
+                    life = Math.random();
+                const px = burnPointX + Math.cos(angle) * radius * (1 - life),
+                    py = burnPointY - life * 15 * 1.5,
+                    pSize = (1 - life) * 15 * 0.3;
+                let color;
+                if (life < 0.3) color = `rgba(255,255,100, ${1 - life/0.3})`;
+                else if (life < 0.7) color = `rgba(255,150,0, ${1 - (life - 0.3)/0.4})`;
+                else color = `rgba(255,0,0, ${1 - (life - 0.7)/0.3})`;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(px, py, pSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function createPropellerWash(currentBoat, config) {
+            const propBaseX = currentBoat.x + ((-config.width / 2 - 8) * currentBoat.direction);
+            const propBaseY = currentBoat.y - 18;
+            for (let i = 0; i < 5; i++) {
+                const life = 30 + Math.random() * 30,
+                    size = 0.5 + Math.random() * 1.5,
+                    speed = 1.5 + Math.random() * 2;
+                particles.push({
+                    type: 'foam',
+                    x: propBaseX + (Math.random() - 0.5) * 15,
+                    y: Math.min(propBaseY + (Math.random() - 0.5) * 10, WATER_LEVEL),
+                    vx: -currentBoat.direction * speed * (0.8 + Math.random() * 0.4),
+                    vy: (Math.random() - 0.8) * 0.5,
+                    life: life,
+                    maxLife: life,
+                    opacity: 0.9,
+                    size: size
+                });
+            }
+        }
+
+        function updateBoat(currentBoat, isAI = false) {
+            if (!currentBoat) return false;
+            const horizontalFriction = 0.96;
+            const canMove = !hook.goingDown && !hook.caught && (gameState === 'WORD_CATCHING' || gameState === 'FREE_FISHING_REWARD') && !ropeBurning && !failedItem && !rewardStageMessage && !resetMessage && !currentBoat.isInKnockback;
+            let isActuallyMoving = false,
+                moveDirection = 0;
+            if (!isAI && canMove) {
+                if (isTV) moveDirection = tvContinuousMove;
+                else {
+                    if (isMovingLeft) moveDirection = -1;
+                    if (isMovingRight) moveDirection = 1;
+                }
+            }
+            if (moveDirection !== 0) {
+                const nextX = currentBoat.x + (HORIZONTAL_SPEED * moveDirection);
+                const minBoatX = HOOK_MIN_X - BOAT_CONFIG.rodAttachmentPoint.x,
+                    maxBoatX = HOOK_MAX_X + BOAT_CONFIG.rodAttachmentPoint.x;
+                if (nextX >= minBoatX && nextX <= maxBoatX) {
+                    currentBoat.x = nextX;
+                    currentBoat.direction = moveDirection;
+                    isActuallyMoving = true;
+                } else {
+                    if (isTV) tvContinuousMove = 0;
+                }
+            }
+            let finalY;
+            if (currentBoat.isInKnockback) {
+                const GRAVITY = 0.5;
+                currentBoat.knockbackForceY += GRAVITY;
+                finalY = currentBoat.y + currentBoat.knockbackForceY;
+                currentBoat.x += currentBoat.knockbackForceX;
+                currentBoat.knockbackForceX *= horizontalFriction;
+                currentBoat.targetRotation = currentBoat.knockbackForceY < 0 ? Math.sign(currentBoat.knockbackForceX) * -0.3 : 0;
+                currentBoat.knockbackRotation += (currentBoat.targetRotation - currentBoat.knockbackRotation) * 0.1;
+                if (finalY >= currentBoat.baseY && currentBoat.knockbackForceY > 0) {
+                    finalY = currentBoat.baseY;
+                    currentBoat.isInKnockback = false;
+                    currentBoat.knockbackState = 'done';
+                    currentBoat.knockbackForceX = 0;
+                    currentBoat.knockbackForceY = 0;
+                    currentBoat.knockbackRotation = 0;
+                    currentBoat.targetRotation = 0;
+                    currentBoat.shakeDuration = 60;
+                    createSplash(currentBoat.x, WATER_LEVEL, 150, 12);
+                }
+            } else if (currentBoat.shakeDuration > 0) {
+                currentBoat.shakeDuration--;
+                finalY = currentBoat.baseY;
+                currentBoat.knockbackRotation = 0;
+            } else {
+                finalY = currentBoat.baseY + Math.sin(Date.now() / 500 + currentBoat.waveOffset) * 2;
+                currentBoat.knockbackRotation = 0;
+            }
+            currentBoat.y = finalY;
+            const minBoatX = HOOK_MIN_X - BOAT_CONFIG.rodAttachmentPoint.x * currentBoat.direction;
+            const maxBoatX = HOOK_MAX_X - BOAT_CONFIG.rodAttachmentPoint.x * currentBoat.direction;
+            if (currentBoat.x < minBoatX) {
+                currentBoat.x = minBoatX;
+                if (currentBoat.isInKnockback) currentBoat.knockbackForceX *= -0.5;
+            }
+            if (currentBoat.x > maxBoatX) {
+                currentBoat.x = maxBoatX;
+                if (currentBoat.isInKnockback) currentBoat.knockbackForceX *= -0.5;
+            }
+            if (isActuallyMoving) {
+                currentBoat.propellerRotation += 0.5;
+                createPropellerWash(currentBoat, BOAT_CONFIG);
+            }
+            return isActuallyMoving;
+        }
+
+        function updateHook() {
+            if (!ropeBurning && !failedItem) {
+                hook.x = boat.x + (BOAT_CONFIG.rodAttachmentPoint.x * boat.direction);
+                const targetOffsetX = -(boat.x - canvas.width / 2) * PARALLAX_FACTOR;
+                backgroundOffsetX += (targetOffsetX - backgroundOffsetX) * 0.1;
+            }
+            hook.ropeY = boat.y + BOAT_CONFIG.rodAttachmentPoint.y;
+            if (ropeBurning || failedItem || gameState === 'CATCH_PAUSED' || boat.isInKnockback || isCelebrationFireworksActive || isCheckingWord || resetMessage || hook.isHandlingCatch) return;
+            if (hook.goingDown) {
+                hook.y += hook.speed;
+                if (hook.y + hook.height > canvas.height) {
+                    hook.y = canvas.height - hook.height;
+                    hook.goingDown = false;
+                }
+                checkCatch(hook);
+            } else {
+                hook.y -= hook.speed;
+                if (hook.caught) {
+                    hook.caught.y = hook.y + hook.height;
+                    if (hook.caught.type === 'ball') {
+                        hook.caught.x = hook.x;
+                    } else {
+                        hook.caught.x = hook.x + Math.sin(fishStruggle) * 5 * struggleDirection;
+                        fishStruggle += 0.2;
+                    }
+                }
+                if (hook.y < hook.ropeY) {
+                    if (hook.caught) {
+                        handleCaughtItemAtTop(hook.caught, hook);
+                    } else {
+                        hook.y = hook.ropeY;
+                    }
+                }
+            }
+        }
+
+        function updateAiBoat() {
+            if (!aiBoat || !aiHook || gameOver || isCelebrationFireworksActive) return false;
+            const cBoat = aiBoat,
+                cHook = aiHook,
+                horizontalFriction = 0.96;
+            const AI_HORIZONTAL_SPEED = 2.5;
+            let isAiMoving = false;
+            let finalY;
+            if (cBoat.isInKnockback) {
+                const GRAVITY = 0.5;
+                cBoat.knockbackForceY += GRAVITY;
+                finalY = cBoat.y + cBoat.knockbackForceY;
+                cBoat.x += cBoat.knockbackForceX;
+                cBoat.knockbackForceX *= horizontalFriction;
+                cBoat.targetRotation = cBoat.knockbackForceY < 0 ? Math.sign(cBoat.knockbackForceX) * -0.3 : 0;
+                cBoat.knockbackRotation += (cBoat.targetRotation - cBoat.knockbackRotation) * 0.1;
+                if (finalY >= cBoat.baseY && cBoat.knockbackForceY > 0) {
+                    finalY = cBoat.baseY;
+                    cBoat.isInKnockback = false;
+                    cBoat.knockbackForceX = 0;
+                    cBoat.knockbackForceY = 0;
+                    cBoat.knockbackRotation = 0;
+                    cBoat.targetRotation = 0;
+                    cBoat.shakeDuration = 60;
+                    createSplash(cBoat.x, WATER_LEVEL, 150, 12);
+                }
+            } else if (cBoat.shakeDuration > 0) {
+                cBoat.shakeDuration--;
+                finalY = cBoat.baseY;
+                cBoat.knockbackRotation = 0;
+            } else {
+                finalY = cBoat.baseY + Math.sin(Date.now() / 500 + cBoat.waveOffset) * 2;
+                cBoat.knockbackRotation = 0;
+            }
+            cBoat.y = finalY;
+            const canAiAct = !cBoat.isInKnockback && !rewardStageMessage && !resetMessage && !cHook.isHandlingCatch;
+            if (canAiAct) {
+                if (cHook.aiState === 'waiting') {
+                    let closestFish = null,
+                        minDist = Infinity;
+                    fishes.forEach(f => {
+                        if (f.isCatchable && !f.caughtBy) {
+                            const d = Math.abs(f.x - cBoat.x);
+                            if (d < minDist) {
+                                minDist = d;
+                                closestFish = f;
+                            }
+                        }
+                    });
+                    if (closestFish) {
+                        cBoat.aiTargetX = closestFish.x;
+                    }
+                }
+                if (cBoat.aiTargetX !== null) {
+                    const diff = cBoat.aiTargetX - cBoat.x;
+                    if (Math.abs(diff) > AI_HORIZONTAL_SPEED * 5) {
+                        const moveDir = Math.sign(diff);
+                        cBoat.x += AI_HORIZONTAL_SPEED * moveDir;
+                        cBoat.direction = moveDir;
+                        cBoat.propellerRotation += 0.3;
+                        createPropellerWash(cBoat, BOAT_CONFIG);
+                        isAiMoving = true;
+                    }
+                }
+            }
+            cHook.ropeY = cBoat.y + BOAT_CONFIG.rodAttachmentPoint.y;
+            cHook.x = cBoat.x + (BOAT_CONFIG.rodAttachmentPoint.x * cBoat.direction);
+            if (cHook.isHandlingCatch) return isAiMoving;
+            if (cHook.aiState === 'waiting') {
+                cHook.aiWaitTimer--;
+                if (cHook.aiWaitTimer <= 0) {
+                    cHook.aiState = 'casting';
+                    cHook.goingDown = true;
+                }
+            } else if (cHook.aiState === 'casting') {
+                cHook.y += cHook.speed;
+                if (!cHook.caught) {
+                    checkCatch(cHook);
+                }
+                if (cHook.caught || cHook.y + cHook.height > canvas.height) {
+                    cHook.aiState = 'reeling';
+                    cHook.goingDown = false;
+                    if (cHook.y + cHook.height > canvas.height) {
+                        cHook.y = canvas.height - cHook.height;
+                    }
+                }
+            } else if (cHook.aiState === 'reeling') {
+                cHook.y -= cHook.speed;
+                if (cHook.caught) {
+                    cHook.caught.y = cHook.y + cHook.height;
+                    cHook.caught.x = cHook.x + Math.sin(cHook.fishStruggle) * 5;
+                    cHook.fishStruggle += 0.2;
+                }
+                if (cHook.y <= cHook.ropeY) {
+                    cHook.y = cHook.ropeY;
+                    if (cHook.caught) {
+                        handleCaughtItemAtTop(cHook.caught, cHook);
+                    } else {
+                        cHook.aiState = 'waiting';
+                        cHook.aiWaitTimer = Math.random() * 60 + 60;
+                    }
+                }
+            }
+            return isAiMoving;
+        }
+
+        function updateCrocodile() {
+            if (!crocodile || gameOver || isCelebrationFireworksActive) return;
+            crocodile.y = WATER_LEVEL + crocodile.diveDepth;
+            crocodile.rotation += (crocodile.targetRotation - crocodile.rotation) * 0.1;
+            crocodile.diveDepth += (crocodile.targetDepth - crocodile.diveDepth) * 0.15;
+            if (gameState !== 'FREE_FISHING_REWARD') {
+                crocodile.state = 'lurking';
+                crocodile.attackTimer = 200 + Math.random() * 150;
+                crocodile.targetDepth = 0;
+                crocodile.targetRotation = 0;
+            }
+            switch (crocodile.state) {
+                case 'lurking':
+                    crocodile.x += crocodile.speed * crocodile.dir * 0.3;
+                    if ((crocodile.dir === -1 && crocodile.x < -crocodile.width - 50) || (crocodile.dir === 1 && crocodile.x > canvas.width + crocodile.width + 50)) {
+                        crocodile.dir *= -1;
+                    }
+                    if (gameState === 'FREE_FISHING_REWARD' && !rewardStageMessage && !resetMessage) {
+                        crocodile.attackTimer--;
+                        if (crocodile.attackTimer <= 0) {
+                            const potentialTarget = Math.random() < 0.5 ? boat : aiBoat;
+                            if (potentialTarget && !potentialTarget.isInKnockback) {
+                                crocodile.target = potentialTarget;
+                                crocodile.state = 'approaching';
+                                crocodile.targetDepth = 0;
+                            } else {
+                                crocodile.attackTimer = 100;
+                            }
+                        }
+                    }
+                    break;
+                case 'approaching':
+                    if (!crocodile.target || crocodile.target.isInKnockback) {
+                        crocodile.state = 'surfacing';
+                        break;
+                    }
+                    const distance = crocodile.target.x - crocodile.x,
+                        approachRange = 150;
+                    if (Math.abs(distance) < approachRange) {
+                        crocodile.state = 'diving';
+                        crocodile.targetDepth = 50;
+                        crocodile.targetRotation = crocodile.dir * (Math.PI / 6);
+                    } else {
+                        crocodile.dir = Math.sign(distance);
+                        crocodile.x += crocodile.speed * crocodile.dir;
+                        crocodile.targetRotation = 0;
+                    }
+                    break;
+                case 'diving':
+                    if (Math.abs(crocodile.diveDepth - crocodile.targetDepth) < 5) {
+                        crocodile.state = 'under_boat';
+                        crocodile.x = crocodile.target.x;
+                    } else {
+                        crocodile.x += (crocodile.target.x - crocodile.x) * 0.05;
+                    }
+                    break;
+                case 'under_boat':
+                    if (Math.abs(crocodile.x - crocodile.target.x) < 10) {
+                        crocodile.state = 'attacking';
+                        crocodile.targetDepth = -20;
+                        crocodile.targetRotation = crocodile.dir * (-Math.PI / 4);
+                    }
+                    break;
+                case 'attacking':
+                    if (crocodile.target && !crocodile.target.isInKnockback) {
+                        const LAUNCH_FORCE_Y = -12,
+                            LAUNCH_FORCE_X = 10;
+                        const knockbackDirection = -crocodile.target.direction;
+                        crocodile.target.isInKnockback = true;
+                        crocodile.target.knockbackState = 'launch';
+                        crocodile.target.knockbackForceY = LAUNCH_FORCE_Y;
+                        crocodile.target.knockbackForceX = LAUNCH_FORCE_X * knockbackDirection;
+                        crocodileAttackSound.play().catch(e => {});
+                        createSplash(crocodile.target.x, crocodile.target.y, 100, 10);
+                    }
+                    crocodile.state = 'surfacing';
+                    crocodile.attackTimer = 500 + Math.random() * 300;
+                    crocodile.targetDepth = 0;
+                    crocodile.targetRotation = 0;
+                    break;
+                case 'surfacing':
+                    if (Math.abs(crocodile.diveDepth) < 5) {
+                        crocodile.state = 'lurking';
+                    } else {
+                        const returnX = crocodile.x > canvas.width / 2 ? canvas.width + 200 : -200;
+                        crocodile.dir = Math.sign(returnX - crocodile.x);
+                        crocodile.x += crocodile.speed * crocodile.dir * 0.5;
+                    }
+                    break;
+            }
+        }
+
+        function updateSubmarine() {
+            if (!submarine) {
+                if (gameState === 'FREE_FISHING_REWARD' && (fishCaughtCount + aiCaughtCount) >= 10 && submarineImageLoaded) {
+                    submarine = {
+                        x: -200,
+                        y: WATER_LEVEL + 100,
+                        baseY: WATER_LEVEL + 100,
+                        width: 150,
+                        height: 84,
+                        speed: 1.5,
+                        dir: 1
+                    };
+                }
+                return;
+            }
+            submarine.x += submarine.speed * submarine.dir;
+            submarine.y = submarine.baseY + Math.sin(Date.now() / 800) * 10;
+            if ((submarine.dir === 1 && submarine.x > canvas.width + submarine.width) || (submarine.dir === -1 && submarine.x < -submarine.width)) {
+                submarine.dir *= -1;
+            }
+        }
+
+        function checkCatch(currentHook) {
+            if (currentHook.caught || !currentHook.goingDown || rewardStageMessage || isCelebrationFireworksActive || isCheckingWord || resetMessage) return;
+            if (currentHook === hook && boat.isInKnockback) return;
+            if (currentHook === aiHook && aiBoat?.isInKnockback) return;
+            const hookTipY = currentHook.y + currentHook.height;
+            if (gameState === 'FREE_FISHING_REWARD') {
+                for (let f of fishes) {
+                    if (f.caughtBy || !f.isCatchable) continue;
+                    let catchRadius = f.width / 2.5;
+                    if (f.isCrab) catchRadius = f.width / 2.0;
+                    else if (f.isSeahorse) catchRadius = f.width / 2.2;
+                    if (Math.hypot(currentHook.x - f.x, hookTipY - f.y) < catchRadius) {
+                        catchSound.play();
+                        currentHook.caught = f;
+                        f.caughtBy = currentHook;
+                        currentHook.goingDown = false;
+                        currentHook.fishStruggle = 0;
+                        if (currentHook === hook) {
+                            struggleDirection = Math.random() > 0.5 ? 1 : -1;
+                        }
+                        return;
+                    }
+                }
+            } else if (gameState === 'WORD_CATCHING' && currentHook === hook) {
+                for (let vent of items) {
+                    if (vent.hasBall && Math.hypot(hook.x - vent.ball.x, hookTipY - vent.ball.y) < vent.ball.radius) {
+                        if (vent.correct) {
+                            afarinSound.play().catch(e => {});
+                            hook.caught = vent.ball;
+                            targetWord = vent.ball.word;
+                            vent.hasBall = false;
+                            vent.eruptionType = 'bubbles';
+                            vent.eruptionTimer = 120;
+                            hook.goingDown = false;
+                            lastCorrectVentX = vent.x;
+                            ventBubbleSound.play().catch(e => {});
+                        } else {
+                            const tempWrongSound = new Audio("sound/try.mp3");
+                            tempWrongSound.play();
+                            vent.hasBall = false;
+                            vent.eruptionType = 'fire';
+                            vent.eruptionTimer = 120;
+                            failedItem = vent;
+                            hook.caught = null;
+                            hook.goingDown = false;
+                            ropeBurning = true;
+                            fireSound.play();
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
+        function handleCaughtItemAtTop(caughtItem, currentHook) {
+            if (gameOver || resetMessage || !caughtItem || currentHook.isHandlingCatch) {
+                if (currentHook) currentHook.caught = null;
+                return;
+            }
+            currentHook.isHandlingCatch = true;
+            if (caughtItem.type === 'fish') {
+                splashSound.play();
+                if (currentHook === hook) {
+                    fishCaughtCount++;
+                } else {
+                    aiCaughtCount++;
+                }
+                setTimeout(() => {
+                    const fishIndex = fishes.findIndex(f => f.id === caughtItem.id);
+                    if (fishIndex > -1) {
+                        fishes.splice(fishIndex, 1);
+                    }
+                    currentHook.caught = null;
+                    currentHook.fishStruggle = 0;
+                    currentHook.isHandlingCatch = false;
+                    if (currentHook === aiHook) {
+                        currentHook.aiState = 'waiting';
+                        currentHook.aiWaitTimer = Math.random() * 60 + 60;
+                    }
+                    const remainingFish = fishes.filter(f => f.isCatchable && !f.caughtBy).length;
+                    if (remainingFish === 0 && gameState === 'FREE_FISHING_REWARD') {
+                        let resultMessage = "";
+                        if (fishCaughtCount > aiCaughtCount) {
+                            resultMessage = `🎉 شما با ${fishCaughtCount} ماهی برنده شدید! 🎉`;
+                            isCelebrationFireworksActive = true;
+                            celebrationSound.play();
+                        } else if (aiCaughtCount > fishCaughtCount) {
+                            resultMessage = `باختی! رقیب ${aiCaughtCount} ماهی گرفت.`;
+                        } else {
+                            resultMessage = `مرحله پاداش مساوی شد!`;
+                        }
+                        rewardStageMessage = resultMessage;
+                        setTimeout(() => {
+                            isCelebrationFireworksActive = false;
+                            particles = particles.filter(p => !['firework', 'spark', 'explosion'].includes(p.type));
+                            wordsInLevelCompleted = 0;
+                            const nextLevelIndex = currentLevelIndex + 1;
+                            if (nextLevelIndex < GAME_LEVELS.length) {
+                                startLevel(nextLevelIndex);
+                            } else {
+                                gameOver = true;
+                                gameOverType = 'win';
+                                message = "🎉 شما تمام مراحل را با موفقیت تمام کردید! 🎉";
+                                isCelebrationFireworksActive = true;
+                                localStorage.removeItem(SAVE_KEY);
+                            }
+                        }, 5000);
+                    }
+                }, 500);
+            } else if (caughtItem.type === 'ball') {
+                if (lastCorrectVentX !== null) {
+                    const ventTopY = canvas.height - 155;
+                    spawnMiniFishes(lastCorrectVentX, ventTopY, 20);
+                    lastCorrectVentX = null;
+                }
+                setTimeout(startWordBuildingStage, 1000);
+                currentHook.caught = null;
+                currentHook.isHandlingCatch = false;
+            }
+        }
+
+        function updateParticlesPhysics() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                if (p.type === 'firework') {
+                    p.trail.push({
+                        x: p.x,
+                        y: p.y
+                    });
+                    if (p.trail.length > 20) p.trail.shift();
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.sparkTimer++;
+                    if (p.sparkTimer % 2 === 0) {
+                        const ang = Math.random() * Math.PI * 2,
+                            spd = Math.random() * 1.5;
+                        const sparkColors = ['#FFD700', '#FFF8DC', '#C0C0C0', '#ADD8E6'];
+                        particles.push({
+                            type: 'spark',
+                            x: p.x,
+                            y: p.y,
+                            vx: Math.cos(ang) * spd,
+                            vy: Math.sin(ang) * spd,
+                            size: 1 + Math.random(),
+                            color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
+                            life: 18,
+                            maxLife: 18
+                        });
+                    }
+                    const lifeRatio = p.life / p.maxLife;
+                    if (lifeRatio > 0.75) p.color = '#FFFFFF';
+                    else if (lifeRatio > 0.5) p.color = '#FFFF80';
+                    else if (lifeRatio > 0.25) p.color = '#FFA500';
+                    else p.color = p.baseColor;
+                    if (p.y <= p.targetY) {
+                        explodeFirework(p.x, p.y, p.baseColor);
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    p.life--;
+                    if (p.life <= 0) particles.splice(i, 1);
+                    continue;
+                } else if (p.type === 'spark' || p.type === 'explosion') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.96;
+                    p.vy *= 0.96;
+                    p.vy += 0.02;
+                    p.life--;
+                    if (p.life <= 0) particles.splice(i, 1);
+                    continue;
+                }
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.type === 'foam') {
+                    p.vy += 0.01;
+                    if (p.y < WATER_LEVEL - 2) p.vy += 0.05;
+                } else if (p.type === 'erupt_bubble') {
+                    p.vy *= 0.98;
+                } else if (p.type === 'fire') {
+                    p.vy += 0.15;
+                } else if (p.type === 'mini_fish') {
+                    p.vy -= 0.05;
+                    p.angle += p.spin;
+                    if (p.x < -p.size || p.x > canvas.width + p.size) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                } else {
+                    p.vy += 0.15;
+                }
+                if (p.life <= 0 || p.y > canvas.height + (p.size || 0)) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function resetCurrentLevel() {
+            resetMessage = `کلمه اشتباه بود! مرحله از نو شروع می‌شود...`;
+            ropeBurning = false;
+            burnProgress = 0;
+            failedItem = null;
+            fireSound.pause();
+            fireSound.currentTime = 0;
+            hook.y = hook.ropeY;
+            wordsInLevelCompleted = 0;
+            saveGameState();
+            setTimeout(() => {
+                startLevel(currentLevelIndex);
+            }, 2500);
+        }
+
+        function updateSceneElements() {
+            fishes.forEach(f => {
+                if (f.caughtBy) return;
+                if (f.isCrab) {
+                    if (f.actionTimer) f.actionTimer--;
+                    if (f.actionTimer <= 0) {
+                        f.actionTimer = 100 + Math.random() * 100;
+                        f.isMoving = Math.random() > 0.2;
+                        if (f.isMoving) {
+                            if (Math.random() < 0.5) f.dir *= -1;
+                            f.speed = 0.5 + Math.random() * 0.3;
+                        }
+                    }
+                    if (f.isMoving) f.x += f.speed * f.dir;
+                    const crabWidth = f.width;
+                    if (f.x > canvas.width - crabWidth / 2) {
+                        f.x = canvas.width - crabWidth / 2;
+                        f.dir = -1;
+                    } else if (f.x < crabWidth / 2) {
+                        f.x = crabWidth / 2;
+                        f.dir = 1;
+                    }
+                    const crabHeight = f.image.height * (f.width / f.image.width);
+                    f.y = canvas.height - crabHeight / 2 - 20;
+                } else if (f.isSeahorse) {
+                    f.y += Math.sin(f.waveOffset + Date.now() * 0.002) * 0.5;
+                    f.x += f.speed * f.dir;
+                    if ((f.dir === 1 && f.x > canvas.width + f.width) || (f.dir === -1 && f.x < -f.width)) {
+                        f.dir *= -1;
+                        f.y = WATER_LEVEL + 100 + Math.random() * (canvas.height - WATER_LEVEL - 250);
+                    }
+                    if (f.y < WATER_LEVEL + 50) f.y = WATER_LEVEL + 50;
+                    if (f.y > canvas.height - 150) f.y = canvas.height - 150;
+                } else {
+                    if (f.turnTimer) f.turnTimer--;
+                    if (f.turnTimer <= 0) {
+                        if (Math.random() < 0.4) f.dir *= -1;
+                        f.targetSpeed = f.baseSpeed * (0.5 + Math.random());
+                        f.turnTimer = Math.random() * 300 + 200;
+                    }
+                    f.speed += (f.targetSpeed - f.speed) * 0.05;
+                    f.x -= f.speed * f.dir;
+                    f.y += Math.sin(f.waveOffset + Date.now() * 0.002) * 0.2;
+                    const boundary = f.width;
+                    if (f.dir === 1 && f.x < -boundary) {
+                        f.x = canvas.width + boundary;
+                        f.y = WATER_LEVEL + 50 + Math.random() * (canvas.height - WATER_LEVEL - 150);
+                    } else if (f.dir === -1 && f.x > canvas.width + boundary) {
+                        f.x = -boundary;
+                        f.y = WATER_LEVEL + 50 + Math.random() * (canvas.height - WATER_LEVEL - 150);
+                    }
+                    if (f.y < WATER_LEVEL + 30) f.y = WATER_LEVEL + 30;
+                    if (f.y > canvas.height - 100) f.y = canvas.height - 100;
+                }
+                if (f.bubbleTimer) {
+                    if (--f.bubbleTimer <= 0) {
+                        bubbles.push({
+                            x: f.x,
+                            y: f.y,
+                            size: Math.random() * 1.5 + 1,
+                            vx: (Math.random() - 0.5) * 0.3,
+                            vy: -1,
+                            life: 100 + Math.random() * 50
+                        });
+                        f.bubbleTimer = 150 + Math.random() * 200;
+                    }
+                } else {
+                    f.bubbleTimer = 150 + Math.random() * 200;
+                }
+            });
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                let b = bubbles[i];
+                b.y += b.vy || -1;
+                b.x += b.vx || 0;
+                if (--b.life <= 0 || b.y < WATER_LEVEL) bubbles.splice(i, 1);
+            }
+            clouds.forEach(c => {
+                c.x += c.speed;
+                if (c.x > canvas.width + c.size) c.x = -c.size;
+            });
+            updateParticlesPhysics();
+            if (ropeBurning) {
+                burnProgress += 1 / burnDuration;
+                if (burnProgress >= 1) {
+                    burnProgress = 1;
+                    const ropeStartX = boat.x + (BOAT_CONFIG.rodAttachmentPoint.x * boat.direction),
+                        ropeStartY = boat.y + BOAT_CONFIG.rodAttachmentPoint.y;
+                    createRopeDebris(ropeStartX, ropeStartY, hook.x, hook.y);
+                    resetCurrentLevel();
+                }
+            }
+            items.forEach(item => {
+                if (item.type === 'vent') {
+                    if (item.hasBall) item.ball.y = item.ball.baseY - Math.abs(Math.sin(Date.now() / 200)) * 5;
+                    if (item.eruptionTimer > 0) item.eruptionTimer--;
+                }
+            });
+            letterSlots.forEach(slot => {
+                if (slot.isShaking) {
+                    if (!slot.shakeTimer) slot.shakeTimer = 30;
+                    slot.shakeTimer--;
+                    if (slot.shakeTimer <= 0) {
+                        slot.isShaking = false;
+                        delete slot.shakeTimer;
+                    }
+                }
+            });
+        }
+
+        function startWordBuildingStage() {
+            gameState = 'WORD_BUILDING';
+            items = [];
+            spawnLetters(targetWord);
+        }
+
+        function startFreeFishingRewardStage() {
+            gameState = 'FREE_FISHING_REWARD';
+            rewardStageMessage = "مرحله پاداش: رقابت ماهیگیری!";
+            birdSound.play().catch(e => {});
+            setTimeout(() => rewardStageMessage = "", 4000);
+            scatteredLetters = [];
+            letterSlots = [];
+            items = [];
+            hook.y = hook.ropeY;
+            hook.caught = null;
+            hook.x = canvas.width / 2;
+            hook.isHandlingCatch = false;
+            fishCaughtCount = 0;
+            aiCaughtCount = 0;
+            tvContinuousMove = 0;
+            resetAndRepopulateFishes(true);
+            submarine = null;
+            const BOAT_Y_BASE = WATER_LEVEL + BOAT_CONFIG.height - BOAT_CONFIG.yDrawOffset;
+            aiBoat = {
+                x: canvas.width * 0.25,
+                y: BOAT_Y_BASE,
+                baseY: BOAT_Y_BASE,
+                waveOffset: Math.random() * Math.PI * 2,
+                direction: 1,
+                propellerRotation: 0,
+                knockbackForceX: 0,
+                knockbackForceY: 0,
+                knockbackRotation: 0,
+                targetRotation: 0,
+                isInKnockback: false,
+                shakeDuration: 0,
+                aiTargetX: null
+            };
+            aiHook = {
+                x: aiBoat.x,
+                y: aiBoat.y + BOAT_CONFIG.rodAttachmentPoint.y,
+                width: 4,
+                height: 13,
+                speed: 4.5,
+                ropeY: aiBoat.y + BOAT_CONFIG.rodAttachmentPoint.y,
+                goingDown: false,
+                caught: null,
+                fishStruggle: 0,
+                aiState: 'waiting',
+                aiWaitTimer: 120,
+                isHandlingCatch: false
+            };
+            boat.x = canvas.width * 0.75;
+            boat.direction = -1;
+            boat.isInKnockback = false;
+            boat.knockbackForceX = 0;
+            boat.knockbackForceY = 0;
+            boat.knockbackRotation = 0;
+            boat.targetRotation = 0;
+            boat.shakeDuration = 0;
+            boat.y = BOAT_Y_BASE;
+            boat.baseY = BOAT_Y_BASE;
+        }
+
+        function resetFishState(isRewardStage) {
+            birdSound.pause();
+            birdSound.currentTime = 0;
+            submarine = null;
+            resetAndRepopulateFishes(isRewardStage);
+        }
+
+        function gameLoop() {
+            ctx.globalCompositeOperation = 'source-over';
+            if (isCelebrationFireworksActive) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            drawBackground();
+            if (gameState === 'FREE_FISHING_REWARD' && submarine) {
+                drawSubmarine();
+            } else {
+                drawCorals();
+                drawSeabedDetails();
+                items.forEach(item => {
+                    if (item.type === 'vent') drawVentImage(item);
+                    if (item.hasBall && item.ball) drawBall(item.ball);
+                });
+                drawFishes();
+                drawBubbles();
+                drawCrocodile();
+            }
+            drawWaterSurface();
+            drawBoat(boat, BOAT_CONFIG, boatImage, boatImageLoaded);
+            drawBoatEngine(boat, BOAT_CONFIG, false);
+            if (gameState === 'FREE_FISHING_REWARD') {
+                drawBoat(aiBoat, BOAT_CONFIG, boatImage, boatImageLoaded);
+                drawBoatEngine(aiBoat, BOAT_CONFIG, true);
+            }
+            drawHookAndRope(hook, boat, BOAT_CONFIG);
+            if (aiHook && aiBoat) {
+                drawHookAndRope(aiHook, aiBoat, BOAT_CONFIG);
+            }
+            drawLetters();
+            ctx.globalCompositeOperation = 'source-over';
+            drawParticles();
+            if (!gameOver && !resetMessage && !gameIsPaused) {
+                const playerMoved = updateBoat(boat, false);
+                let aiMoved = false;
+                if (gameState === 'FREE_FISHING_REWARD') {
+                    aiMoved = updateAiBoat();
+                    updateSubmarine();
+                }
+                updateHook();
+                updateSceneElements();
+                updateCrocodile();
+                if (playerMoved || aiMoved) {
+                    if (propellerSound.paused) propellerSound.play().catch(e => {});
+                } else {
+                    if (!propellerSound.paused) propellerSound.pause();
+                }
+            }
+            if (isCelebrationFireworksActive) {
+                fireworksLaunchTimer--;
+                if (fireworksLaunchTimer <= 0) {
+                    launchRandomFirework();
+                    fireworksLaunchTimer = FIREWORKS_LAUNCH_INTERVAL;
+                }
+            }
+            drawScores();
+            drawMessage();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleLetterSelection(e) {
+            e.preventDefault();
+            if (isTV || gameOver || rewardStageMessage || gameState !== 'WORD_BUILDING' || isCelebrationFireworksActive || isCheckingWord || resetMessage) return;
+            const rect = canvas.getBoundingClientRect(),
+                scaleX = canvas.width / rect.width,
+                scaleY = canvas.height / rect.height;
+            let clickX, clickY;
+            if (e.changedTouches) {
+                clickX = e.changedTouches[0].clientX;
+                clickY = e.changedTouches[0].clientY;
+            } else {
+                clickX = e.clientX;
+                clickY = e.clientY;
+            }
+            const canvasX = (clickX - rect.left) * scaleX,
+                canvasY = (clickY - rect.top) * scaleY;
+            let clickedLetterIndex = scatteredLetters.findIndex(l => Math.hypot(l.x - canvasX, l.y - canvasY) < 28);
+            if (clickedLetterIndex >= 0) {
+                selectLetter(clickedLetterIndex);
+            }
+        }
+
+        function selectLetter(letterIndex) {
+            if (letterIndex < 0 || letterIndex >= scatteredLetters.length || isCheckingWord) return;
+            const clickedLetter = scatteredLetters[letterIndex];
+            const nextEmptySlotIndex = placedLetters.indexOf(null);
+            if (nextEmptySlotIndex === -1) return;
+            clickSound.play().catch(e => {});
+            placedLetters[nextEmptySlotIndex] = clickedLetter.char;
+            placeSound.play();
+            scatteredLetters.splice(letterIndex, 1);
+            if (isTV && tvSelectedLetterIndex >= scatteredLetters.length && scatteredLetters.length > 0) {
+                tvSelectedLetterIndex = scatteredLetters.length - 1;
+            }
+            // Use the same logic to get the target word form for comparison
+            const targetWordWithTashdid = handleTashdid(targetWord.replace(/\s/g, ''));
+            const targetWordProcessed = getPositionalForms(targetWordWithTashdid);
+            if (placedLetters[nextEmptySlotIndex] !== targetWordProcessed[nextEmptySlotIndex]) {
+                isCheckingWord = true;
+                wrongSound.play().catch(e => {});
+                letterSlots.forEach(slot => slot.isShaking = true);
+                setTimeout(() => {
+                    resetWordBuilding();
+                }, 1500);
+                return;
+            }
+            if (placedLetters.indexOf(null) === -1) {
+                checkWordCompletion();
+            }
+        }
+
+        function resetWordBuilding() {
+            scatteredLetters = [];
+            initialLetterPositions.forEach(pos => scatteredLetters.push({ ...pos
+            }));
+            placedLetters.fill(null);
+            if (isTV) tvSelectedLetterIndex = 0;
+            isCheckingWord = false;
+        }
+
+        function checkWordCompletion() {
+            isCheckingWord = true;
+            const targetWordWithTashdid = handleTashdid(targetWord.replace(/\s/g, ''));
+            const targetWordProcessed = getPositionalForms(targetWordWithTashdid);
+            const playerWord = placedLetters.join('');
+            if (playerWord === targetWordProcessed.join('')) {
+                playWordSuccessCelebration();
+                setTimeout(() => {
+                    isCheckingWord = false;
+                    advanceToNextWordOrLevel();
+                }, 3000);
+            } else {
+                wrongSound.play().catch(e => {});
+                letterSlots.forEach(slot => slot.isShaking = true);
+                setTimeout(() => {
+                    resetWordBuilding();
+                }, 1500);
+            }
+        }
+        document.addEventListener("keydown", e => {
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Enter"].includes(e.key)) e.preventDefault();
+            if (gameIsPaused) return;
+            if (gameOver) {
+                if (e.key === 'Enter') restartLevelBtn.click();
+                return;
+            };
+            const canCastHook = !hook.goingDown && !hook.caught && (gameState === 'WORD_CATCHING' || gameState === 'FREE_FISHING_REWARD') && !ropeBurning && !failedItem && !rewardStageMessage && !resetMessage && !boat.isInKnockback && !isCelebrationFireworksActive && !isCheckingWord && !hook.isHandlingCatch;
+            if (isTV) {
+                if (e.key === "Enter" || e.key === " ") {
+                    if (gameState === 'WORD_BUILDING') {
+                        selectLetter(tvSelectedLetterIndex);
+                    } else if (canCastHook) {
+                        hook.goingDown = true;
+                        hookDropSound.play().catch(e => {});
+                        hook.castingAnimation = 15;
+                        tvContinuousMove = 0;
+                    }
+                } else if (e.key === "ArrowLeft") {
+                    if (canCastHook) tvContinuousMove = -1;
+                } else if (e.key === "ArrowRight") {
+                    if (canCastHook) tvContinuousMove = 1;
+                } else if (e.key === "ArrowDown" && gameState === 'WORD_BUILDING') {
+                    tvSelectedLetterIndex = (tvSelectedLetterIndex + 1) % scatteredLetters.length;
+                } else if (e.key === "ArrowUp" && gameState === 'WORD_BUILDING') {
+                    tvSelectedLetterIndex = (tvSelectedLetterIndex - 1 + scatteredLetters.length) % scatteredLetters.length;
+                }
+            } else {
+                if (e.key === "ArrowDown") {
+                    if (canCastHook) {
+                        hook.goingDown = true;
+                        hookDropSound.play().catch(e => {});
+                        hook.castingAnimation = 15;
+                    }
+                } else if (e.key === "ArrowLeft") {
+                    isMovingLeft = true;
+                } else if (e.key === "ArrowRight") {
+                    isMovingRight = true;
+                }
+            }
+        });
+        document.addEventListener("keyup", e => {
+            if (!isTV) {
+                if (e.key === "ArrowLeft") isMovingLeft = false;
+                if (e.key === "ArrowRight") isMovingRight = false;
+            }
+        });
+        restartLevelBtn.addEventListener('click', () => {
+            initializeGame();
+        });
+        const passiveFalse = {
+            passive: false
+        };
+        canvas.addEventListener("mousedown", handleLetterSelection, passiveFalse);
+        canvas.addEventListener("touchstart", handleLetterSelection, passiveFalse);
+        const canCastHookTouch = () => !hook.goingDown && !hook.caught && (gameState === 'WORD_CATCHING' || gameState === 'FREE_FISHING_REWARD') && !ropeBurning && !failedItem && !rewardStageMessage && !resetMessage && !boat.isInKnockback && !isCelebrationFireworksActive && !isCheckingWord && !hook.isHandlingCatch;
+        downBtn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (gameIsPaused || gameOver || rewardStageMessage || resetMessage) return;
+            if (canCastHookTouch()) {
+                hook.goingDown = true;
+                hookDropSound.play().catch(e => {});
+                hook.castingAnimation = 15;
+            }
+        }, passiveFalse);
+        leftBtn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (canCastHookTouch() && !gameIsPaused) isMovingLeft = true;
+        }, passiveFalse);
+        rightBtn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (canCastHookTouch() && !gameIsPaused) isMovingRight = true;
+        }, passiveFalse);
+        leftBtn.addEventListener('touchend', e => {
+            e.preventDefault();
+            isMovingLeft = false;
+        }, passiveFalse);
+        rightBtn.addEventListener('touchend', e => {
+            e.preventDefault();
+            isMovingRight = false;
+        }, passiveFalse);
+        window.addEventListener('resize', resizeCanvas);
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            const loaded = loadGameState();
+            if (!loaded) {
+                startScreenSound.play().catch(e => console.log('Audio autoplay prevented.'));
+            }
+        });
+    </script>
+</body>
+</html>
