@@ -1,0 +1,32 @@
+name: Android Build - بازی ماهیگیری
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: دریافت سورس پروژه
+        uses: actions/checkout@v3
+
+      - name: نصب Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: نصب Cordova
+        run: npm install -g cordova
+
+      - name: آماده‌سازی پلتفرم اندروید
+        run: cordova platform add android
+
+      - name: ساخت نسخه انتشار (APK)
+        run: cordova build android --release
+
+      - name: آپلود فایل خروجی برای دانلود
+        uses: actions/upload-artifact@v3
+        with:
+          name: bazi-mahi-gari-release
+          path: platforms/android/app/build/outputs/apk/release/*.apk
