@@ -1,0 +1,47 @@
+name: ساخت کامل APK بازی ماهیگیری
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: دریافت سورس
+        uses: actions/checkout@v3
+
+      - name: نصب وابستگی‌ها (Java و Android SDK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk curl unzip
+          java -version
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
+          mkdir -p $HOME/android-sdk
+          unzip cmdtools.zip -d $HOME/android-sdk/cmdline-tools
+          mv $HOME/android-sdk/cmdline-tools $HOME/android-sdk/latest
+          yes | $HOME/android-sdk/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+          $HOME/android-sdk/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "export PATH=$PATH:$HOME/android-sdk/platform-tools:$HOME/android-sdk/latest/bin" >> $GITHUB_ENV
+
+      - name: نصب Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: نصب Cordova
+        run: npm install -g cordova
+
+      - name: ساخت نسخه انتشار (APK)
+        run: |
+          cordova platform add android
+          cordova build android --release
+
+      - name: بارگذاری خروجی APK
+        if: success()
+        uses: actions/upload-artifact@v4.3.0
+        with:
+          name: bazi-mahi-gari-release
+          path: platforms/android/app/build/outputs/apk/release/*.apk
