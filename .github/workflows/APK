@@ -1,0 +1,36 @@
+name: ساخت خودکار بازی ماهیگیری
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: دریافت سورس
+        uses: actions/checkout@v3
+
+      - name: نصب ابزارها
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          java -version
+          node -v
+          npm -v
+
+      - name: نصب Cordova
+        run: npm install -g cordova
+
+      - name: ساخت APK
+        run: |
+          cordova platform add android
+          cordova build android --release
+
+      - name: آپلود فایل خروجی (Artifacts)
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: bazi-mahi-gari-release
+          path: platforms/android/app/build/outputs/apk/release/*.apk
