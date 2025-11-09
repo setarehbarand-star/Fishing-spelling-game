@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ضبط کننده صدا هوشمند</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .recording {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .listening {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .paused {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        #startBtn {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        #stopBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        #pauseBtn {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .word-display {
+            font-size: 24px;
+            margin: 20px 0;
+            min-height: 36px;
+            color: #333;
+        }
+        
+        .timer {
+            font-size: 18px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .visualizer {
+            width: 100%;
+            height: 100px;
+            margin: 20px 0;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .visualizer-bar {
+            position: absolute;
+            bottom: 0;
+            width: 3px;
+            background-color: #4caf50;
+            display: inline-block;
+            margin: 0 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ضبط کننده صدا هوشمند</h1>
+        
+        <div class="visualizer" id="visualizer"></div>
+        
+        <div class="word-display" id="wordDisplay">آماده برای ضبط صدا...</div>
+        
+        <div class="timer" id="timer">زمان باقیمانده: 0 ثانیه</div>
+        
+        <div class="status" id="statusIndicator">حالت: آماده</div>
+        
+        <div class="controls">
+            <button id="startBtn">شروع ضبط</button>
+            <button id="stopBtn" disabled>توقف</button>
+            <button id="pauseBtn" disabled>مکث</button>
+        </div>
+    </div>
+
+    <script>
+        // Element references
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const wordDisplay = document.getElementById('wordDisplay');
+        const timerDisplay = document.getElementById('timer');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const visualizer = document.getElementById('visualizer');
+        
+        // Audio context and variables
+        let audioContext;
+        let analyser;
+        let microphone;
+        let processor;
+        let scriptProcessor;
+        let isRecording = false;
+        let isPaused = false;
+        let recognition;
+        let silenceTimeout;
+        let currentWord = '';
+        let lastWordTime = 0;
+        
+        // تعداد بارهای متوالی که سکوت تشخیص داده شده
+        let silenceCount = 0;
+        
+        // Frequency data for visualization
+        let frequencyData;
+        
+        // Initialize audio context
+        function initAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            processor = audioContext.createScriptProcessor(2048, 1, 1);
+            
+            // برای تجسم صدا
+            frequencyData = new Uint8Array(analyser.frequencyBinCount);
+            
+            processor.onaudioprocess = function(e) {
+                analyser.getByteFrequencyData(frequencyData);
+                
+                // Clear visualizer
+                visualizer.innerHTML = '';
+                
+                // Draw frequency bars
+                const barWidth = visualizer.offsetWidth / 50;
+                for (let i = 0; i < 50; i++) {
+                    const index = Math.floor(i * (frequencyData.length / 50));
+                    const value = frequencyData[index] / 255;
+                    const barHeight = value * visualizer.offsetHeight;
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'visualizer-bar';
+                    bar.style.height = `${barHeight}px`;
+                    bar.style.left = `${i * (barWidth + 1)}px`;
+                    bar.style.width = `${barWidth}px`;
+                    visualizer.appendChild(bar);
+                }
+                
+                const averageVolume = getAverageVolume(frequencyData);
+                checkForSilence(averageVolume);
+            };
+        }
+        
+        // Calculate average volume
+        function getAverageVolume(array) {
+            let values = 0;
+            for (let i = 0; i < array.length; i++) {
+                values += array[i];
+            }
+            return values / array.length;
+        }
+        
+        // Check for silence and handle word detection
+        function checkForSilence(volume) {
+            const SILENCE_THRESHOLD = 5;
+            const MIN_SOUND_THRESHOLD = 10;
+            const SILENCE_LIMIT = 10;
+            
+            if (volume > MIN_SOUND_THRESHOLD) {
+                silenceCount = 0;
+                if (!currentWord) {
+                    currentWord = '';
+                    lastWordTime = Date.now();
+                }
+            } else {
+                silenceCount++;
+                if (currentWord && silenceCount >= SILENCE_LIMIT) {
+                    processWord(currentWord);
+                    currentWord = '';
+                }
+            }
+        }
+        
+        // Process the detected word with timing logic
+        function processWord(word) {
+            statusIndicator.textContent = `حالت: پردازش کلمه "${word}"`;
+            statusIndicator.className = 'status processing';
+            
+            const wordLength = word.length;
+            let delayMs;
+            
+            if (wordLength >= 4) {
+                delayMs = 13000; // 13 ثانیه برای کلمات بلند
+            } else {
+                delayMs = 8000; // 8 ثانیه برای کلمات کوتاه
+            }
+            
+            wordDisplay.textContent = `کلمه تشخیص داده شده: "${word}" (طول: ${wordLength})`;
+            timerDisplay.textContent = `زمان باقیمانده تا کلمه بعدی: ${delayMs/1000} ثانیه`;
+            
+            setTimeout(() => {
+                statusIndicator.textContent = 'حالت: گوش دادن برای کلمه بعدی';
+                statusIndicator.className = 'status listening';
+                wordDisplay.textContent = 'در حال گوش دادن برای کلمه بعدی...';
+                timerDisplay.textContent = 'زمان باقیمانده: 0 ثانیه';
+            }, delayMs);
+        }
+        
+        // Request microphone permission and start recording
+        async function startRecording() {
+            try {
+                if (!audioContext) {
+                    initAudioContext();
+                }
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                isRecording = true;
+                isPaused = false;
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                pauseBtn.disabled = false;
+                
+                statusIndicator.textContent = 'حالت: در حال ضبط';
+                statusIndicator.className = 'status recording';
+                wordDisplay.textContent = 'در حال گوش دادن به صدای شما...';
+                
+            } catch (error) {
+                console.error('خطا در دسترسی به میکروفون:', error);
+                wordDisplay.textContent = 'خطا در دسترسی به میکروفون. لطفاً مجوز لازم را صادر کنید.';
+                statusIndicator.textContent = 'خطا در دسترسی';
+                statusIndicator.className = 'status error';
+            }
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            if (microphone) {
+                microphone.disconnect();
+            }
+            if (processor) {
+                processor.disconnect();
+            }
+            
+            isRecording = false;
+            isPaused = false;
+            currentWord = '';
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            pauseBtn.disabled = true;
+            
+            statusIndicator.textContent = 'حالت: متوقف شده';
+            statusIndicator.className = 'status stopped';
+            wordDisplay.textContent = 'ضبط متوقف شد. برای شروع دوباره کلیک کنید.';
+            timerDisplay.textContent = 'زمان باقیمانده: 0 ثانیه';
+            
+            // Clear visualizer
+            visualizer.innerHTML = '';
+        }
+        
+        // Pause recording
+        function pauseRecording() {
+            if (isPaused) {
+                // Resume
+                if (microphone) {
+                    microphone.connect(analyser);
+                }
+                isPaused = false;
+                pauseBtn.textContent = 'مکث';
+                statusIndicator.textContent = 'حالت: در حال ضبط';
+                statusIndicator.className = 'status recording';
+                wordDisplay.textContent = 'در حال گوش دادن به صدای شما...';
+            } else {
+                // Pause
+                if (microphone) {
+                    microphone.disconnect();
+                }
+                isPaused = true;
+                pauseBtn.textContent = 'ادامه';
+                statusIndicator.textContent = 'حالت: مکث';
+                statusIndicator.className = 'status paused';
+                wordDisplay.textContent = 'ضبط مکث شده. برای ادامه کلیک کنید.';
+            }
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        pauseBtn.addEventListener('click', pauseRecording);
+        
+        // Speech recognition (fallback for browsers with speech recognition API)
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'fa-IR';
+            
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    currentWord = finalTranscript.trim();
+                    processWord(currentWord);
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('خطا در تشخیص گفتار:', event.error);
+            };
+            
+            // Start speech recognition when recording starts
+            startBtn.addEventListener('click', () => {
+                if (recognition) {
+                    recognition.start();
+                }
+            });
+            
+            // Stop speech recognition when recording stops
+            stopBtn.addEventListener('click', () => {
+                if (recognition) {
+                    recognition.stop();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
